@@ -33,6 +33,7 @@ Response (shape)
   "ts": "2026-02-28T00:00:00.000Z",
   "central_day": "2026-02-27",
   "tz_offset_hours": -8,
+  "status": "PAUSED|LIVE|READY",
   "phase": "paused|in_call|active|waiting_for_time|ready|waiting",
   "pause": {
     "paused_state": "RUNNING|PAUSED",
