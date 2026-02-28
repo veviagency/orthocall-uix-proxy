@@ -83,6 +83,18 @@ Response (shape)
   }
 }
 
+#### Metric Source Rules (event-driven, single source of truth)
+- jobs_total / jobs_by_type -> timeline event: job_picked
+- calls_final_total / calls_by_status -> timeline event: call_final_status
+- calls_connected -> call_final_status (connected=true)
+- calls_60s -> call_final_status (connected=true AND duration_sec>=60)  (lower-bound; duration missing olabilir)
+- emails_total / emails_by_target -> timeline event: email_sent
+- dnc_marked -> timeline event: dnc_marked
+- booking_ready -> timeline event: booking_ready
+
+#### Timezone label rule
+UIX, tz_offset_hours değerini her ekranda "Central Ops Time (UTC{offset})" olarak göstermelidir.
+
 ### GET /ops/metrics/range?from=YYYY-MM-DD&to=YYYY-MM-DD
 Response (shape)
 {
