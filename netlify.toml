@@ -4,3 +4,9 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/uix-proxy/*"
+  to = "https://qdmmjjxxztnqupqshiwx.functions.supabase.co/uix-proxy/:splat"
+  status = 200
+  force = true
