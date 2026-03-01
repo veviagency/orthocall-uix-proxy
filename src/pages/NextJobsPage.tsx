@@ -24,27 +24,83 @@ export function NextJobsPage() {
     // Next Jobs: 15–30s poll veya refresh (plan)
     const stop = startPoll(load, 20000);
     return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>
-        {utcLabel(tzOffset)}
-      </div>
-
-      <h2>Next Jobs</h2>
-
-      <button onClick={load} style={{ marginBottom: 12 }}>Refresh</button>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        {jobs.map((j: any) => (
-          <div key={String(j.job_id)} style={{ border: "1px solid #444", padding: 12 }}>
-            <div><b>lead:</b> {j?.lead_hint?.first_name} {j?.lead_hint?.last_initial}. • …{j?.lead_hint?.phone_last4}</div>
-            <div><b>call_type:</b> {String(j?.call_type || "")}</div>
-            <div><b>next_action_at:</b> {String(j?.next_action_at_label || "")}</div>
+      <div className="hRow" style={{ marginBottom: 12 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Next Jobs</h2>
+          <div className="smallMuted" style={{ marginTop: 4 }}>
+            {utcLabel(tzOffset)}
           </div>
-        ))}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="badge">limit: 3</div>
+          <button className="btn" onClick={load}>
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {jobs.length === 0 ? (
+        <div className="smallMuted">No jobs right now.</div>
+      ) : (
+        <div className="grid2">
+          {jobs.map((j: any) => {
+            const first = String(j?.lead_hint?.first_name || "").trim();
+            const lastI = String(j?.lead_hint?.last_initial || "").trim();
+            const last4 = String(j?.lead_hint?.phone_last4 || "").trim();
+            const callType = String(j?.call_type || "").trim();
+            const when = String(j?.next_action_at_label || "").trim();
+            const jobId = String(j?.job_id || "").trim();
+
+            return (
+              <div
+                key={jobId || String(Math.random())}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "rgba(0,0,0,0.18)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {first || "—"} {lastI ? `${lastI}.` : ""}
+                    {last4 ? ` • …${last4}` : ""}
+                  </div>
+                  {callType ? <div className="badge">{callType}</div> : null}
+                </div>
+
+                <div className="smallMuted" style={{ marginTop: 8 }}>
+                  next_action_at: {when || "—"}
+                </div>
+
+                <div className="smallMuted" style={{ marginTop: 6 }}>
+                  job_id: {jobId || "—"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
+        <pre className="monoBox" style={{ marginTop: 8 }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }
