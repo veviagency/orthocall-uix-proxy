@@ -9,6 +9,17 @@ function utcLabel(offsetHours: number) {
   return `Central Ops Time (UTC${sign}${n})`;
 }
 
+// OrthoCall UIX: ms -> Central Ops Time label (readable)
+function fmtCentralTime(ms: any, offsetHours: number) {
+  const n = Number(ms);
+  if (!Number.isFinite(n)) return "";
+  const off = Number.isFinite(offsetHours) ? offsetHours : 0;
+  const sign = off >= 0 ? "+" : "";
+  const d = new Date(n + off * 3600000);
+  const iso = d.toISOString().replace("T", " ").replace("Z", "");
+  return `${iso.slice(0, 19)} (UTC${sign}${off})`;
+}
+
 export function TodayPage() {
   const [data, setData] = useState<any>(null);
 
@@ -24,13 +35,14 @@ export function TodayPage() {
     // Today poll: 15–30s (plan)
     const stop = startPoll(load, 20000);
     return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cards = [
     ["jobs_total", totals.jobs_total ?? 0],
     ["calls_final_total", totals.calls_final_total ?? 0],
     ["calls_connected", totals.calls_connected ?? 0],
-    ["calls_60s", totals.calls_60s ?? 0],
+    ["calls_60s*", totals.calls_60s ?? 0],
     ["emails_total", totals.emails_total ?? 0],
     ["dnc_marked", totals.dnc_marked ?? 0],
     ["booking_ready", totals.booking_ready ?? 0],
@@ -38,24 +50,46 @@ export function TodayPage() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>
-        {utcLabel(tzOffset)}
+      <div className="hRow" style={{ marginBottom: 12 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Today</h2>
+          <div className="smallMuted" style={{ marginTop: 4 }}>
+            {utcLabel(tzOffset)}
+          </div>
+        </div>
+
+        <div className="smallMuted">
+          Updated: {fmtCentralTime(data?.updated_at_ms, tzOffset) || "—"}
+        </div>
       </div>
 
-      <h2>Today</h2>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+      <div className="grid2">
         {cards.map(([k, v]) => (
-          <div key={String(k)} style={{ border: "1px solid #444", padding: 12 }}>
-            <div style={{ opacity: 0.8 }}>{k}</div>
-            <div style={{ fontSize: 24, fontWeight: 700 }}>{String(v)}</div>
+          <div
+            key={String(k)}
+            style={{
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 12,
+              padding: 12,
+              background: "rgba(0,0,0,0.18)",
+            }}
+          >
+            <div className="kpiKey">{String(k)}</div>
+            <div className="kpiVal">{String(v)}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 12, opacity: 0.7 }}>
-        updated_at_ms: {String(data?.updated_at_ms ?? "")}
+      <div className="smallMuted" style={{ marginTop: 10 }}>
+        * calls_60s = connected calls with duration_sec &gt;= 60. If duration is missing, this metric may be a lower bound.
       </div>
+
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
+        <pre className="monoBox" style={{ marginTop: 8 }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </details>
     </div>
   );
 }
