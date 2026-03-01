@@ -33,25 +33,35 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!session) {
     return (
-      <div style={{ padding: 16, maxWidth: 520 }}>
-        <h2>Login</h2>
-        <p>Enter your email to receive a magic link.</p>
-        <input
-          style={{ width: "100%", padding: 10 }}
-          placeholder="you@clinic.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button style={{ marginTop: 10 }} onClick={sendLink}>Send magic link</button>
+      <div className="appShell">
+        <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
+          <h2>Login</h2>
+          <p>Enter your email to receive a magic link.</p>
+
+          <input
+            className="input"
+            placeholder="you@clinic.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <button className="btn" style={{ marginTop: 10 }} onClick={sendLink}>
+            Send magic link
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ padding: 12, borderBottom: "1px solid #444", display: "flex", justifyContent: "space-between" }}>
-        <div>Logged in</div>
-        <button onClick={signOut}>Sign out</button>
+    <div className="appShell">
+      <div className="topbar">
+        <div className="brand">OrthoCall UIX</div>
+        <div className="rightMeta">
+          <button className="btn" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
       </div>
       {children}
     </div>
@@ -64,20 +74,45 @@ export default function App() {
 
   return (
     <AuthGate>
-      <div style={{ padding: 12, borderBottom: "1px solid #444", display: "flex", gap: 8 }}>
-        <button onClick={() => setTab("status")}>Status</button>
-        <button onClick={() => setTab("today")}>Today</button>
-        <button onClick={() => setTab("range")}>Range</button>
-        <button onClick={() => setTab("jobs")}>Next Jobs</button>
-        <div style={{ marginLeft: "auto", opacity: 0.8 }}>
-          role: {loading ? "loading..." : (role || "none")}
+      <div className="card">
+        <div className="hRow">
+          <div className="tabs">
+            <button
+              className={`tabBtn ${tab === "status" ? "tabBtnActive" : ""}`}
+              onClick={() => setTab("status")}
+            >
+              Status
+            </button>
+            <button
+              className={`tabBtn ${tab === "today" ? "tabBtnActive" : ""}`}
+              onClick={() => setTab("today")}
+            >
+              Today
+            </button>
+            <button
+              className={`tabBtn ${tab === "range" ? "tabBtnActive" : ""}`}
+              onClick={() => setTab("range")}
+            >
+              Range
+            </button>
+            <button
+              className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
+              onClick={() => setTab("jobs")}
+            >
+              Next Jobs
+            </button>
+          </div>
+
+          <div className="badge">role: {loading ? "loading..." : role || "none"}</div>
+        </div>
+
+        <div>
+          {tab === "status" ? <StatusPage /> : null}
+          {tab === "today" ? <TodayPage /> : null}
+          {tab === "range" ? <RangePage /> : null}
+          {tab === "jobs" ? <NextJobsPage /> : null}
         </div>
       </div>
-
-      {tab === "status" ? <StatusPage /> : null}
-      {tab === "today" ? <TodayPage /> : null}
-      {tab === "range" ? <RangePage /> : null}
-      {tab === "jobs" ? <NextJobsPage /> : null}
     </AuthGate>
   );
 }
