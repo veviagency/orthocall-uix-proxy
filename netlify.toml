@@ -1,12 +1,20 @@
 [build]
-  publish = "public"
+  command = "npm run build"
+  publish = "dist"
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
 
+# UIX -> Supabase Edge Function gateway
 [[redirects]]
   from = "/uix-proxy/*"
   to = "https://qdmmjjxxztnqupqshiwx.functions.supabase.co/uix-proxy/:splat"
   status = 200
   force = true
+
+# SPA fallback (client-side routing / auth callbacks)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
