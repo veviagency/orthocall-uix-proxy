@@ -81,7 +81,8 @@ export function TodayPage() {
       </div>
 
       <div className="smallMuted" style={{ marginTop: 10 }}>
-        * calls_60s = connected calls with duration_sec &gt;= 60. If duration is missing, this metric may be a lower bound.
+        * calls_60s = connected calls with duration_sec &gt;= 60. If duration is
+        missing, this metric may be a lower bound.
       </div>
 
       <details style={{ marginTop: 12 }}>
