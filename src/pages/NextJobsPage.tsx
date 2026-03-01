@@ -1,3 +1,4 @@
+// src/pages/NextJobsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
@@ -10,6 +11,7 @@ function utcLabel(offsetHours: number) {
 
 export function NextJobsPage() {
   const [data, setData] = useState<any>(null);
+
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
   const jobs = Array.isArray(data?.jobs) ? data.jobs : [];
 
@@ -19,14 +21,19 @@ export function NextJobsPage() {
   }
 
   useEffect(() => {
+    // Next Jobs: 15–30s poll veya refresh (plan)
     const stop = startPoll(load, 20000);
     return stop;
   }, []);
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
+      <div style={{ marginBottom: 12, fontWeight: 600 }}>
+        {utcLabel(tzOffset)}
+      </div>
+
       <h2>Next Jobs</h2>
+
       <button onClick={load} style={{ marginBottom: 12 }}>Refresh</button>
 
       <div style={{ display: "grid", gap: 12 }}>

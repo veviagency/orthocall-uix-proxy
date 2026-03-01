@@ -1,3 +1,4 @@
+// src/pages/TodayPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
@@ -10,6 +11,7 @@ function utcLabel(offsetHours: number) {
 
 export function TodayPage() {
   const [data, setData] = useState<any>(null);
+
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
   const totals = data?.totals || {};
 
@@ -19,7 +21,8 @@ export function TodayPage() {
   }
 
   useEffect(() => {
-    const stop = startPoll(load, 20000); // 15–30s
+    // Today poll: 15–30s (plan)
+    const stop = startPoll(load, 20000);
     return stop;
   }, []);
 
@@ -35,8 +38,12 @@ export function TodayPage() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
+      <div style={{ marginBottom: 12, fontWeight: 600 }}>
+        {utcLabel(tzOffset)}
+      </div>
+
       <h2>Today</h2>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
         {cards.map(([k, v]) => (
           <div key={String(k)} style={{ border: "1px solid #444", padding: 12 }}>
@@ -44,6 +51,10 @@ export function TodayPage() {
             <div style={{ fontSize: 24, fontWeight: 700 }}>{String(v)}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 12, opacity: 0.7 }}>
+        updated_at_ms: {String(data?.updated_at_ms ?? "")}
       </div>
     </div>
   );

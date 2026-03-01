@@ -1,3 +1,4 @@
+// src/pages/RangePage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 
@@ -19,6 +20,7 @@ export function RangePage() {
   const [from, setFrom] = useState(yyyyMmDd(new Date(today.getTime() - 6 * 86400000)));
   const [to, setTo] = useState(yyyyMmDd(today));
   const [data, setData] = useState<any>(null);
+
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
 
   async function load() {
@@ -26,11 +28,18 @@ export function RangePage() {
     setData(r);
   }
 
-  useEffect(() => { load().catch(() => {}); }, []);
+  useEffect(() => {
+    // Default last 7 days load
+    load().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
+      <div style={{ marginBottom: 12, fontWeight: 600 }}>
+        {utcLabel(tzOffset)}
+      </div>
+
       <h2>Range</h2>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
@@ -46,7 +55,7 @@ export function RangePage() {
         {JSON.stringify(data?.totals || {}, null, 2)}
       </pre>
 
-      <h3>Days</h3>
+      <h3>Days (chart input)</h3>
       <pre style={{ background: "#111", color: "#eee", padding: 12, overflow: "auto" }}>
         {JSON.stringify(data?.days || [], null, 2)}
       </pre>
