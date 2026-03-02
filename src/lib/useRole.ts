@@ -8,6 +8,7 @@ export function useRole() {
   const [role, setRole] = useState<Role | "">("");
   const [tenantId, setTenantId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [clinicName, setClinicName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export function useRole() {
         setRole("");
         setTenantId("");
         setUserId("");
+        setClinicName("");
         setLoading(false);
         return;
       }
@@ -48,6 +50,32 @@ export function useRole() {
       // opsFetch otomatik kullanacak (single tenant için bile iyi)
       try { if (tid) localStorage.setItem("uix_tenant_id", tid); } catch {}
 
+      // OrthoCall UIX: Klinik adı (hard-coded değil) -> uix_tenants'tan okunur
+      try {
+        if (tid) {
+          const tq = await supabase
+            .from("uix_tenants")
+            .select("*")
+            .eq("tenant_id", tid)
+            .limit(1);
+
+          const trow = (tq.data && tq.data[0]) ? (tq.data[0] as any) : null;
+
+          const cn = String(
+            trow?.clinic_name ||
+            trow?.name ||
+            trow?.tenant_name ||
+            trow?.display_name ||
+            ""
+          ).trim();
+
+          if (alive) {
+            setClinicName(cn);
+            try { if (cn) localStorage.setItem("uix_clinic_name", cn); } catch {}
+          }
+        }
+      } catch (_) {}
+
       setLoading(false);
     }
 
@@ -56,5 +84,5 @@ export function useRole() {
     return () => { alive = false; };
   }, []);
 
-  return { role, tenantId, userId, loading };
+  return { role, tenantId, userId, clinicName, loading };
 }
