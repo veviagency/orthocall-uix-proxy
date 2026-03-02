@@ -74,7 +74,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [tab, setTab] = useState<"status" | "today" | "range" | "jobs">("status");
-  const { role, loading, clinicName } = useRole();
+  const { role, loading } = useRole();
 
   return (
     <AuthGate>
