@@ -1,9 +1,9 @@
 /* UIX minimal professional skin */
 
 .appShell {
-  max-width: 1100px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: 24px 12px 40px;
 }
 
 .card {
@@ -110,7 +110,11 @@
   gap: 12px;
 }
 
-@media (min-width: 920px) {
+@media (min-width: 740px) {
+  .grid2 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+
+@media (min-width: 980px) {
   .grid2 { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
 
@@ -135,4 +139,36 @@
   border-radius: 14px;
   padding: 12px;
   margin-bottom: 12px;
+}
+
+/* OrthoCall UIX: Ana panel biraz daha dolu dursun + footer en altta kalsın */
+.mainCard {
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardBody {
+  flex: 1;
+}
+
+.panelFooter {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.panelFooter a {
+  color: rgba(255,255,255,0.92);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.18);
+}
+
+.panelFooter a:hover {
+  border-bottom-color: rgba(255,255,255,0.42);
 }
