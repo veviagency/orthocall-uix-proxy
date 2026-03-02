@@ -10,6 +10,7 @@ import { NextJobsPage } from "./pages/NextJobsPage";
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("");
   const [session, setSession] = useState<any>(null);
+  const { clinicName } = useRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
@@ -56,7 +57,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="appShell">
       <div className="topbar">
-        <div className="brand">OrthoCall UIX</div>
+        <div>
+          <div className="brand">OrthoCall UIX</div>
+          {clinicName ? <div className="smallMuted">Clinic: {clinicName}</div> : null}
+        </div>
         <div className="rightMeta">
           <button className="btn" onClick={signOut}>
             Sign out
@@ -70,11 +74,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const [tab, setTab] = useState<"status" | "today" | "range" | "jobs">("status");
-  const { role, loading } = useRole();
+  const { role, loading, clinicName } = useRole();
 
   return (
     <AuthGate>
-      <div className="card">
+      <div className="card mainCard">
         <div className="hRow">
           <div className="tabs">
             <button
@@ -106,11 +110,16 @@ export default function App() {
           <div className="badge">role: {loading ? "loading..." : role || "none"}</div>
         </div>
 
-        <div>
+        <div className="cardBody">
           {tab === "status" ? <StatusPage /> : null}
           {tab === "today" ? <TodayPage /> : null}
           {tab === "range" ? <RangePage /> : null}
           {tab === "jobs" ? <NextJobsPage /> : null}
+        </div>
+
+        <div className="panelFooter">
+          <span>OrthoCall by</span>
+          <a href="https://veviagency.com" target="_blank" rel="noreferrer">VeVi Agency</a>
         </div>
       </div>
     </AuthGate>
