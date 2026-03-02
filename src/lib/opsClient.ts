@@ -11,6 +11,47 @@ type OpsFetchOpts = {
   body?: any;
 };
 
+// OrthoCall UIX: Connectivity classification
+// Türkçe: UIX ekranları "OK / SERVER_DOWN / AUTH / PROXY_ERROR" gösterebilsin.
+export type ConnectivityState = "OK" | "SERVER_DOWN" | "AUTH" | "PROXY_ERROR";
+
+export function classifyOpsError(e: any): { state: ConnectivityState; detail: string } {
+  const msg = (e && e.message) ? String(e.message) : String(e || "");
+  const status = (e && (e as any).status) ? Number((e as any).status) : NaN;
+
+  // Supabase session yoksa: AUTH
+  if (msg === "missing_supabase_session") {
+    return { state: "AUTH", detail: "AUTH: missing_supabase_session" };
+  }
+
+  // HTTP 401/403: AUTH
+  if (status === 401 || status === 403) {
+    return { state: "AUTH", detail: `AUTH: ops_http_${status}` };
+  }
+
+  // ops_http_* : PROXY_ERROR (proxy / ops server response error)
+  if (msg.startsWith("ops_http_")) {
+    // 404 gibi durumlar (OPS kapalı / route yok) da burada PROXY_ERROR olarak görünür
+    return { state: "PROXY_ERROR", detail: `PROXY_ERROR: ${msg}` };
+  }
+
+  // fetch/network fail: SERVER_DOWN
+  const low = msg.toLowerCase();
+  if (
+    low.includes("failed to fetch") ||
+    low.includes("networkerror") ||
+    low.includes("fetch failed") ||
+    low.includes("load failed") ||
+    low.includes("timeout") ||
+    low.includes("abort")
+  ) {
+    return { state: "SERVER_DOWN", detail: `SERVER_DOWN: ${msg}` };
+  }
+
+  // default
+  return { state: "PROXY_ERROR", detail: `PROXY_ERROR: ${msg}` };
+}
+
 function joinUrl(base: string, path: string) {
   const b = base.replace(/\/+$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
