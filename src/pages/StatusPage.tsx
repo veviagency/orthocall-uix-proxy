@@ -1,6 +1,6 @@
 // src/pages/StatusPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { opsFetch, classifyOpsError, ConnectivityState } from "../lib/opsClient";
+import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
 import { useRole } from "../lib/useRole";
 
