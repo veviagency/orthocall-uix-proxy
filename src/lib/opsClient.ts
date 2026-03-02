@@ -114,7 +114,19 @@ export async function opsFetch(path: string, opts: OpsFetchOpts = {}) {
   const payload = isJson ? await resp.json().catch(() => null) : await resp.text().catch(() => "");
 
   if (!resp.ok) {
-    const err = new Error(`ops_http_${resp.status}`);
+    // OrthoCall UIX: bubble up server error details to help debugging
+    // Türkçe: 500/403 gibi durumlarda backend'in {error:"..."} mesajını UIX'te görebilelim.
+    let extra = "";
+    try {
+      if (payload && typeof payload === "object") {
+        const eMsg = (payload as any).error || (payload as any).message || "";
+        if (eMsg) extra = ` | ${String(eMsg)}`;
+      } else if (typeof payload === "string" && payload.trim()) {
+        extra = ` | ${payload.trim().slice(0, 200)}`;
+      }
+    } catch {}
+
+    const err = new Error(`ops_http_${resp.status}${extra}`);
     (err as any).status = resp.status;
     (err as any).payload = payload;
     throw err;
