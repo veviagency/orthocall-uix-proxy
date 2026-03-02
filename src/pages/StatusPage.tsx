@@ -27,6 +27,12 @@ export function StatusPage() {
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState<string>("");
 
+  // OrthoCall UIX: Recent Activity (signal feed)
+  const [activity, setActivity] = useState<any[]>([]);
+  const [activityMeta, setActivityMeta] = useState<any>(null);
+  const [activityErr, setActivityErr] = useState<string>("");
+  const [activityPaused, setActivityPaused] = useState(false);
+
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
 
   async function load() {
@@ -35,12 +41,31 @@ export function StatusPage() {
     setData(r);
   }
 
+  async function loadActivity() {
+    if (activityPaused) return;
+    setActivityErr("");
+    try {
+      const r = await opsFetch("/activity?limit=100", { method: "GET" });
+      setActivityMeta(r);
+      setActivity(Array.isArray(r?.items) ? r.items : []);
+    } catch (e: any) {
+      setActivityErr(e && e.message ? String(e.message) : String(e));
+    }
+  }
+
   useEffect(() => {
     // Status poll: 10–15s (plan)
     const stop = startPoll(load, 12000);
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Activity poll: daha hızlı ama hafif (signal-only)
+    const stop = startPoll(loadActivity, 4000);
+    return stop;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityPaused]);
 
   const canControl =
     role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
@@ -71,8 +96,8 @@ export function StatusPage() {
         const next = data?.next_job || null;
 
         const pauseStateRaw = String(pause?.paused_state || "").toUpperCase();
-        const pausedState = (pauseStateRaw === "PAUSED") ? "PAUSED" : "RUNNING";
-        const pausedMode = (pausedState === "PAUSED") ? String(pause?.paused_mode || "") : "";
+        const pausedState = pauseStateRaw === "PAUSED" ? "PAUSED" : "RUNNING";
+        const pausedMode = pausedState === "PAUSED" ? String(pause?.paused_mode || "") : "";
         const pausedReason = String(pause?.changed_reason || pause?.reason || "");
         const pausedChanged = fmtCentralTime(pause?.changed_at_ms, tzOffset);
 
@@ -179,6 +204,44 @@ export function StatusPage() {
           </div>
         );
       })()}
+
+      <div style={{ marginTop: 16 }}>
+        <div className="hRow" style={{ marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Recent Activity (last 100)</h3>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <label className="smallMuted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={activityPaused}
+                onChange={(e) => setActivityPaused(e.target.checked)}
+              />
+              Pause updates
+            </label>
+            <button className="btn" onClick={() => { setActivity([]); setActivityMeta(null); }}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {activityErr ? <div style={{ color: "crimson" }}>{activityErr}</div> : null}
+
+        <pre className="monoBox" style={{ marginTop: 8, maxHeight: 320, overflow: "auto" }}>
+          {(activity && activity.length)
+            ? activity
+                .map((it: any) => {
+                  const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "";
+                  const msg = String(it?.msg || "");
+                  return ts ? `${ts} • ${msg}` : msg;
+                })
+                .join("\n")
+            : "No activity yet."}
+        </pre>
+
+        <div className="smallMuted" style={{ marginTop: 6 }}>
+          Updated: {fmtCentralTime(activityMeta?.last_activity_ms, tzOffset) || "—"} • items:{" "}
+          {String(activity?.length || 0)}
+        </div>
+      </div>
 
       <details style={{ marginTop: 12 }}>
         <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
