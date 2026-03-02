@@ -46,7 +46,15 @@ export function NextJobsPage() {
       </div>
 
       {jobs.length === 0 ? (
-        <div className="smallMuted">No jobs right now.</div>
+        <div>
+          <div className="smallMuted">No jobs right now.</div>
+          <div className="smallMuted" style={{ marginTop: 8 }}>
+            Possible reasons: paused • kill-switch ON • no due jobs • queue empty.
+          </div>
+          <div className="smallMuted" style={{ marginTop: 6 }}>
+            Tip: Check the Status tab for Pause/Kill-switch.
+          </div>
+        </div>
       ) : (
         <div className="grid2">
           {jobs.map((j: any) => {
