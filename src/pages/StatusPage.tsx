@@ -47,10 +47,15 @@ export function StatusPage() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
+      <div className="hRow" style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
+        <div className="smallMuted">
+          Updated: {fmtCentralTime(Date.parse(String(data?.ts || "")), tzOffset) || "—"}
+        </div>
+      </div>
 
       {data?.kill_switch?.enabled ? (
-        <div style={{ padding: 12, border: "1px solid #ff4d4f", marginBottom: 12 }}>
+        <div className="bannerDanger">
           <b>Kill-switch is ON</b>
           <div>{String(data?.kill_switch?.reason || "")}</div>
         </div>
@@ -65,8 +70,9 @@ export function StatusPage() {
         const ks = data?.kill_switch || {};
         const next = data?.next_job || null;
 
-        const pausedState = pause?.paused_state ? "PAUSED" : "NOT_PAUSED";
-        const pausedMode = String(pause?.paused_mode || "");
+        const pauseStateRaw = String(pause?.paused_state || "").toUpperCase();
+        const pausedState = (pauseStateRaw === "PAUSED") ? "PAUSED" : "RUNNING";
+        const pausedMode = (pausedState === "PAUSED") ? String(pause?.paused_mode || "") : "";
         const pausedReason = String(pause?.changed_reason || pause?.reason || "");
         const pausedChanged = fmtCentralTime(pause?.changed_at_ms, tzOffset);
 
@@ -78,67 +84,96 @@ export function StatusPage() {
         const nextWhen = String(next?.next_action_at_label || next?.due_at_label || "");
 
         return (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 12,
-              marginTop: 12,
-            }}
-          >
-            <div style={{ border: "1px solid #444", padding: 12 }}>
-              <div style={{ opacity: 0.8, fontSize: 12 }}>Overall Status</div>
-              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>
+          <div className="grid2" style={{ marginTop: 12 }}>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">Overall Status</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
                 {String(data?.status || "—")}
               </div>
-              <div style={{ opacity: 0.7, marginTop: 6, fontSize: 12 }}>
+              <div className="smallMuted" style={{ marginTop: 6 }}>
                 phase: {String(data?.phase || "—")}
               </div>
             </div>
 
-            <div style={{ border: "1px solid #444", padding: 12 }}>
-              <div style={{ opacity: 0.8, fontSize: 12 }}>Pause</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">Pause</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>
                 {pausedState}
                 {pausedMode ? ` • ${pausedMode}` : ""}
               </div>
               {pausedReason ? (
                 <div style={{ marginTop: 6 }}>reason: {pausedReason}</div>
               ) : (
-                <div style={{ marginTop: 6, opacity: 0.7 }}>reason: —</div>
+                <div className="smallMuted" style={{ marginTop: 6 }}>
+                  reason: —
+                </div>
               )}
               {pausedChanged ? (
-                <div style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+                <div className="smallMuted" style={{ marginTop: 6 }}>
                   changed: {pausedChanged}
                 </div>
               ) : (
-                <div style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>changed: —</div>
+                <div className="smallMuted" style={{ marginTop: 6 }}>
+                  changed: —
+                </div>
               )}
             </div>
 
-            <div style={{ border: "1px solid #444", padding: 12 }}>
-              <div style={{ opacity: 0.8, fontSize: 12 }}>Kill-switch</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{ksState}</div>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">Kill-switch</div>
+              <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>{ksState}</div>
               {ksReason ? (
                 <div style={{ marginTop: 6 }}>reason: {ksReason}</div>
               ) : (
-                <div style={{ marginTop: 6, opacity: 0.7 }}>reason: —</div>
+                <div className="smallMuted" style={{ marginTop: 6 }}>
+                  reason: —
+                </div>
               )}
             </div>
 
-            <div style={{ border: "1px solid #444", padding: 12 }}>
-              <div style={{ opacity: 0.8, fontSize: 12 }}>Next Job</div>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">Next Job</div>
               {next ? (
                 <>
-                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 6 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>
                     {nextCallType || "job"} {nextWhen ? `• ${nextWhen}` : ""}
                   </div>
-                  <div style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+                  <div className="smallMuted" style={{ marginTop: 6 }}>
                     job_id: {nextJobId || "—"}
                   </div>
                 </>
               ) : (
-                <div style={{ marginTop: 6, opacity: 0.7 }}>No next job</div>
+                <div className="smallMuted" style={{ marginTop: 6 }}>
+                  No next job
+                </div>
               )}
             </div>
           </div>
@@ -147,15 +182,7 @@ export function StatusPage() {
 
       <details style={{ marginTop: 12 }}>
         <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
-        <pre
-          style={{
-            background: "#111",
-            color: "#eee",
-            padding: 12,
-            overflow: "auto",
-            marginTop: 8,
-          }}
-        >
+        <pre className="monoBox" style={{ marginTop: 8 }}>
           {JSON.stringify(data, null, 2)}
         </pre>
       </details>
@@ -211,15 +238,16 @@ function PauseResumePanel({ onDone }: { onDone: () => Promise<void> }) {
 
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <input
-          style={{ flex: 1, padding: 8 }}
+          className="input"
+          style={{ flex: 1 }}
           placeholder="Reason (required)"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
-        <button onClick={doPause} disabled={busy}>
+        <button className="btn btnDanger" onClick={doPause} disabled={busy}>
           Pause
         </button>
-        <button onClick={doResume} disabled={busy}>
+        <button className="btn" onClick={doResume} disabled={busy}>
           Resume
         </button>
       </div>
