@@ -57,17 +57,26 @@ export function NextJobsPage() {
         </div>
       ) : (
         <div className="grid2">
-          {jobs.map((j: any) => {
+          {jobs.map((j: any, i: number) => {
             const first = String(j?.lead_hint?.first_name || "").trim();
             const lastI = String(j?.lead_hint?.last_initial || "").trim();
             const last4 = String(j?.lead_hint?.phone_last4 || "").trim();
+
+            // OrthoCall UIX: lead_hint yoksa (viewer), ekranda "—" yerine generic başlık kullanacağız
+            const leadLabel = first
+              ? `${first}${lastI ? ` ${lastI}.` : ""}${last4 ? ` • …${last4}` : ""}`
+              : "";
+
             const callType = String(j?.call_type || "").trim();
             const when = String(j?.next_action_at_label || "").trim();
             const jobId = String(j?.job_id || "").trim();
 
+            // OrthoCall UIX: job_id yoksa stabil key üret (Math.random() kullanma)
+            const itemKey = jobId || `${callType || "job"}-${String(j?.next_action_at_ms || "")}-${i}`;
+
             return (
               <div
-                key={jobId || String(Math.random())}
+                key={itemKey}
                 style={{
                   border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: 12,
@@ -84,8 +93,7 @@ export function NextJobsPage() {
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>
-                    {first || "—"} {lastI ? `${lastI}.` : ""}
-                    {last4 ? ` • …${last4}` : ""}
+                    {leadLabel || "Next job"}
                   </div>
                   {callType ? <div className="badge">{callType}</div> : null}
                 </div>
