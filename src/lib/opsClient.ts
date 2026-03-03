@@ -29,10 +29,15 @@ export function classifyOpsError(e: any): { state: ConnectivityState; detail: st
     return { state: "AUTH", detail: `AUTH: ops_http_${status}` };
   }
 
+  // OrthoCall UIX: Include proxy payload error/detail (debuggable)
+  const p = (e && (e as any).payload) ? (e as any).payload : null;
+  const extra = p ? [p.error, p.detail].filter(Boolean).map((x: any) => String(x)).join(" | ") : "";
+  const append = (s: string) => extra ? `${s} | ${extra}` : s;
+
   // ops_http_* : PROXY_ERROR (proxy / ops server response error)
   if (msg.startsWith("ops_http_")) {
     // 404 gibi durumlar (OPS kapalı / route yok) da burada PROXY_ERROR olarak görünür
-    return { state: "PROXY_ERROR", detail: `PROXY_ERROR: ${msg}` };
+    return { state: "PROXY_ERROR", detail: append(`PROXY_ERROR: ${msg}`) };
   }
 
   // fetch/network fail: SERVER_DOWN
