@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
+import { useRole } from "../lib/useRole";
 
 function utcLabel(offsetHours: number) {
   const n = Number.isFinite(offsetHours) ? offsetHours : 0;
@@ -14,13 +15,26 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   const n = Number(ms);
   if (!Number.isFinite(n)) return "";
   const off = Number.isFinite(offsetHours) ? offsetHours : 0;
-  const sign = off >= 0 ? "+" : "";
   const d = new Date(n + off * 3600000);
-  const iso = d.toISOString().replace("T", " ").replace("Z", "");
-  return `${iso.slice(0, 19)} (UTC${sign}${off})`;
+
+  // Türkçe: Offset uygulanmış zamanı UTC üzerinden okunabilir formatta yaz.
+  const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+  const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "UTC" });
+  const year = d.toLocaleString("en-US", { year: "numeric", timeZone: "UTC" });
+
+  const HH = String(d.getUTCHours()).padStart(2, "0");
+  const MM = String(d.getUTCMinutes()).padStart(2, "0");
+  const SS = String(d.getUTCSeconds()).padStart(2, "0");
+
+  const sign = off >= 0 ? "+" : "-";
+  const abs = Math.abs(off);
+  const tzLabel = `UTC${sign}${abs}`;
+
+  return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
 }
 
 export function TodayPage() {
+  const role = useRole();
   const [data, setData] = useState<any>(null);
 
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
@@ -85,12 +99,14 @@ export function TodayPage() {
         missing, this metric may be a lower bound.
       </div>
 
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
-        <pre className="monoBox" style={{ marginTop: 8 }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </details>
+      {role === "system_admin" && (
+        <details style={{ marginTop: 12 }}>
+          <summary>Raw JSON</summary>
+          <pre style={{ whiteSpace: "pre-wrap" }}>
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }
