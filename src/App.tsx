@@ -6,6 +6,7 @@ import { StatusPage } from "./pages/StatusPage";
 import { TodayPage } from "./pages/TodayPage";
 import { RangePage } from "./pages/RangePage";
 import { NextJobsPage } from "./pages/NextJobsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("");
@@ -73,8 +74,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<"status" | "today" | "range" | "jobs">("status");
+  const [tab, setTab] = useState<"status" | "today" | "range" | "jobs" | "settings">("status");
   const { role, loading } = useRole();
+
+  // OrthoCall UIX: Settings sekmesi sadece clinic_admin + system_admin
+  const canSeeSettings = role === "clinic_admin" || role === "system_admin";
+
+  useEffect(() => {
+    // Türkçe: Rol düşerse (örn. viewer) Settings'te kalmasın.
+    if (tab === "settings" && !canSeeSettings) setTab("status");
+  }, [tab, canSeeSettings]);
 
   return (
     <AuthGate>
@@ -100,11 +109,20 @@ export default function App() {
               Range
             </button>
             <button
-              className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
-              onClick={() => setTab("jobs")}
-            >
-              Next Jobs
-            </button>
+                className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
+                onClick={() => setTab("jobs")}
+              >
+                Next Jobs
+              </button>
+
+              {canSeeSettings ? (
+                <button
+                  className={`tabBtn ${tab === "settings" ? "tabBtnActive" : ""}`}
+                  onClick={() => setTab("settings")}
+                >
+                  Settings
+                </button>
+              ) : null}
           </div>
 
           <div className="badge">role: {loading ? "loading..." : role || "none"}</div>
@@ -115,6 +133,7 @@ export default function App() {
           {tab === "today" ? <TodayPage /> : null}
           {tab === "range" ? <RangePage /> : null}
           {tab === "jobs" ? <NextJobsPage /> : null}
+          {tab === "settings" ? <SettingsPage /> : null}
         </div>
 
         <div className="panelFooter">
