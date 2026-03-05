@@ -1,3 +1,4 @@
+// src/App.tsx - V12
 import { useEffect, useState } from "react";
 import "./App.css";
 import { supabase } from "./lib/supabaseClient";
@@ -73,6 +74,15 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+function humanRoleLabel(role?: string) {
+  const r = String(role || "").trim().toLowerCase();
+  if (r === "system_admin" || r === "admin") return "Admin";
+  if (r === "clinic_admin") return "Clinic Admin";
+  if (r === "clinic_operator") return "Clinic Operator";
+  if (r === "clinic_viewer") return "Clinic Viewer";
+  return r ? r : "Unknown";
+}
+
 export default function App() {
   const [tab, setTab] = useState<"status" | "today" | "range" | "jobs" | "settings">("status");
   const { role, loading } = useRole();
@@ -109,23 +119,25 @@ export default function App() {
               Range
             </button>
             <button
-                className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
-                onClick={() => setTab("jobs")}
-              >
-                Next Jobs
-              </button>
+              className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
+              onClick={() => setTab("jobs")}
+            >
+              Next Jobs
+            </button>
 
-              {canSeeSettings ? (
-                <button
-                  className={`tabBtn ${tab === "settings" ? "tabBtnActive" : ""}`}
-                  onClick={() => setTab("settings")}
-                >
-                  Settings
-                </button>
-              ) : null}
+            {canSeeSettings ? (
+              <button
+                className={`tabBtn ${tab === "settings" ? "tabBtnActive" : ""}`}
+                onClick={() => setTab("settings")}
+              >
+                Settings
+              </button>
+            ) : null}
           </div>
 
-          <div className="badge">role: {loading ? "loading..." : role || "none"}</div>
+          <div className="badge">
+            Role: {loading ? "Loading..." : humanRoleLabel(role)}
+          </div>
         </div>
 
         <div className="cardBody">
@@ -138,7 +150,9 @@ export default function App() {
 
         <div className="panelFooter">
           <span>OrthoCall by</span>
-          <a href="https://veviagency.com" target="_blank" rel="noreferrer">VeVi Agency</a>
+          <a href="https://veviagency.com" target="_blank" rel="noreferrer">
+            VeVi Agency
+          </a>
         </div>
       </div>
     </AuthGate>
