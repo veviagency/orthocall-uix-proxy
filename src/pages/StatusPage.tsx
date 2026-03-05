@@ -1,5 +1,5 @@
 // src/pages/StatusPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
 import { useRole } from "../lib/useRole";
@@ -15,11 +15,22 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   const n = Number(ms);
   if (!Number.isFinite(n)) return "";
   const off = Number.isFinite(offsetHours) ? offsetHours : 0;
-  const sign = off >= 0 ? "+" : "";
   const d = new Date(n + off * 3600000);
-  // ISO -> "YYYY-MM-DD HH:MM:SS"
-  const iso = d.toISOString().replace("T", " ").replace("Z", "");
-  return `${iso.slice(0, 19)} (UTC${sign}${off})`;
+
+  // Türkçe: Offset uygulanmış zamanı UTC üzerinden okunabilir formatta yaz.
+  const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+  const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "UTC" });
+  const year = d.toLocaleString("en-US", { year: "numeric", timeZone: "UTC" });
+
+  const HH = String(d.getUTCHours()).padStart(2, "0");
+  const MM = String(d.getUTCMinutes()).padStart(2, "0");
+  const SS = String(d.getUTCSeconds()).padStart(2, "0");
+
+  const sign = off >= 0 ? "+" : "-";
+  const abs = Math.abs(off);
+  const tzLabel = `UTC${sign}${abs}`;
+
+  return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
 }
 
 export function StatusPage() {
@@ -36,10 +47,36 @@ export function StatusPage() {
   const [lastErrAtMs, setLastErrAtMs] = useState<number>(0);
 
   // OrthoCall UIX: Recent Activity (signal feed)
-  const [activity, setActivity] = useState<any[]>([]);
-  const [activityMeta, setActivityMeta] = useState<any>(null);
+  // Türkçe: UIX kapat-aç olsa bile satırlar dursun (Clear'a basana kadar).
+  const ACT_CACHE_KEY = "uix_activity_cache_v1";
+
+  const [activity, setActivity] = useState<any[]>(() => {
+    try {
+      const raw = localStorage.getItem(ACT_CACHE_KEY);
+      const p = raw ? JSON.parse(raw) : null;
+      const items = p && Array.isArray(p.items) ? p.items : [];
+      return items.slice(-100);
+    } catch (_) {
+      return [];
+    }
+  });
+
+  const [activityMeta, setActivityMeta] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem(ACT_CACHE_KEY);
+      const p = raw ? JSON.parse(raw) : null;
+      const last = p && Number.isFinite(Number(p.last_activity_ms)) ? Number(p.last_activity_ms) : 0;
+      return last ? { last_activity_ms: last } : null;
+    } catch (_) {
+      return null;
+    }
+  });
+
   const [activityErr, setActivityErr] = useState<string>("");
   const [activityPaused, setActivityPaused] = useState(false);
+
+  const activityRef = useRef<any[]>([]);
+  useEffect(() => { activityRef.current = activity; }, [activity]);
 
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
 
@@ -65,9 +102,45 @@ export function StatusPage() {
     if (activityPaused) return;
     setActivityErr("");
     try {
-      const r = await opsFetch("/activity?limit=100", { method: "GET" });
+      const cur = Array.isArray(activityRef.current) ? activityRef.current : [];
+      const last = cur.length ? cur[cur.length - 1] : null;
+      const since =
+        last && Number.isFinite(Number((last as any).ts_ms)) ? Number((last as any).ts_ms) : 0;
+
+      const url = `/activity?limit=100${since ? `&since_ms=${since}` : ""}`;
+      const r = await opsFetch(url, { method: "GET" });
+
       setActivityMeta(r);
-      setActivity(Array.isArray(r?.items) ? r.items : []);
+
+      const incoming = Array.isArray(r?.items) ? r.items : [];
+      if (!incoming.length) return;
+
+      setActivity((prev) => {
+        const base = Array.isArray(prev) ? prev : [];
+        const seen = new Set(base.map((it: any) => `${it?.ts_ms || 0}|${String(it?.msg || "")}`));
+
+        const merged = base.slice();
+        for (const it of incoming) {
+          const k = `${it?.ts_ms || 0}|${String(it?.msg || "")}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          merged.push(it);
+        }
+
+        const out = merged.slice(-100);
+
+        try {
+          localStorage.setItem(
+            ACT_CACHE_KEY,
+            JSON.stringify({
+              items: out,
+              last_activity_ms: Number.isFinite(Number(r?.last_activity_ms)) ? Number(r?.last_activity_ms) : 0,
+            })
+          );
+        } catch (_) {}
+
+        return out;
+      });
     } catch (e: any) {
       setActivityErr(e && e.message ? String(e.message) : String(e));
     }
@@ -242,7 +315,7 @@ export function StatusPage() {
     }
 
     return { primary: "READY (no blockers detected).", details: [] };
-  }, [data, conn, connDetail, isStale, staleAgeMs, tzOffset, nowMs]); // (nowMs değişir; sorun değil)
+  }, [data, conn, connDetail, isStale, staleAgeMs, tzOffset, nowMs]);
 
   return (
     <div style={{ padding: 16 }}>
@@ -447,7 +520,14 @@ export function StatusPage() {
               />
               Pause updates
             </label>
-            <button className="btn" onClick={() => { setActivity([]); setActivityMeta(null); }}>
+            <button
+              className="btn"
+              onClick={() => {
+                try { localStorage.removeItem(ACT_CACHE_KEY); } catch (_) {}
+                setActivity([]);
+                setActivityMeta(null);
+              }}
+            >
               Clear
             </button>
           </div>
@@ -473,12 +553,14 @@ export function StatusPage() {
         </div>
       </div>
 
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
-        <pre className="monoBox" style={{ marginTop: 8 }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </details>
+      {role === "system_admin" && (
+        <details style={{ marginTop: 12 }}>
+          <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
+          <pre className="monoBox" style={{ marginTop: 8 }}>
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </details>
+      )}
 
       {canControl ? <PauseResumePanel onDone={load} /> : null}
     </div>
