@@ -34,7 +34,7 @@ function fmtCentralTime(ms: any, offsetHours: number) {
 }
 
 export function TodayPage() {
-  const role = useRole();
+  const { role } = useRole();
   const [data, setData] = useState<any>(null);
 
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
