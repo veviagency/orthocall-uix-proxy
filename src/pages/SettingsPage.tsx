@@ -1,4 +1,4 @@
-// src/pages/SettingsPage.tsx
+// src/pages/SettingsPage.tsx - V12
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch, classifyOpsError } from "../lib/opsClient";
 import { useRole } from "../lib/useRole";
@@ -63,6 +63,7 @@ function ToggleButton({
       onClick={() => onChange(on ? 0 : 1)}
       style={{
         width: 64,
+        margin: "0 auto",
         justifyContent: "center",
         borderRadius: 999,
         fontWeight: 900,
@@ -135,13 +136,22 @@ export function SettingsPage() {
       const r: any = await opsFetch("/settings", { method: "GET" });
 
       // Türkçe: Endpoint şekli Part-2'de netleşecek; burası toleranslı parse.
-      const root = (r && typeof r === "object" && r.settings && typeof r.settings === "object") ? r.settings : r;
+      const root =
+        r && typeof r === "object" && r.settings && typeof r.settings === "object"
+          ? r.settings
+          : r;
 
-      const ch = (root && typeof root.calling_hours === "object") ? root.calling_hours : (root?.call_hours || {});
+      const ch =
+        root && typeof root.calling_hours === "object"
+          ? root.calling_hours
+          : (root?.call_hours || {});
       const st = String(ch?.start || ch?.start_hhmm || "").trim();
       const en = String(ch?.end || ch?.end_hhmm || "").trim();
 
-      const m = (root && typeof root.email_matrix === "object") ? root.email_matrix : (root?.email_policy?.matrix || null);
+      const m =
+        root && typeof root.email_matrix === "object"
+          ? root.email_matrix
+          : (root?.email_policy?.matrix || null);
 
       const nextMatrix: EmailMatrix = {
         NEW_LEAD: {
@@ -258,7 +268,7 @@ export function SettingsPage() {
         <div>
           <h2 style={{ margin: 0 }}>Settings</h2>
           <div className="smallMuted" style={{ marginTop: 4 }}>
-            Admin-only controls (clinic_admin / system_admin)
+            Admin-Only Control
           </div>
         </div>
 
@@ -291,11 +301,18 @@ export function SettingsPage() {
       >
         <div style={{ fontWeight: 900, marginBottom: 6 }}>Calling Hours</div>
         <div className="smallMuted" style={{ marginBottom: 10 }}>
-          Enter in 24-hour format (HH:MM). Example: 09:15. Leave empty to use server/env defaults.
+          Enter in 24-hour format (HH:MM). Example: 09:15. Leave empty to use system defaults.
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 240px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "40% 10% 40%",
+            justifyContent: "center",
+            alignItems: "start",
+          }}
+        >
+          <div>
             <div className="smallMuted" style={{ marginBottom: 6 }}>Start time</div>
             <input
               className="input"
@@ -306,10 +323,13 @@ export function SettingsPage() {
                 const n = normalizeTimeHHMM(startTime);
                 if (n) setStartTime(n);
               }}
+              style={{ width: "100%", boxSizing: "border-box" }}
             />
           </div>
 
-          <div style={{ flex: "1 1 240px" }}>
+          <div />
+
+          <div>
             <div className="smallMuted" style={{ marginBottom: 6 }}>End time</div>
             <input
               className="input"
@@ -320,6 +340,7 @@ export function SettingsPage() {
                 const n = normalizeTimeHHMM(endTime);
                 if (n) setEndTime(n);
               }}
+              style={{ width: "100%", boxSizing: "border-box" }}
             />
           </div>
         </div>
@@ -352,13 +373,14 @@ export function SettingsPage() {
           Toggle 0/1 per call type. Leave Clinic email recipient empty to use server/env default.
         </div>
 
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ margin: "0 auto 12px auto", maxWidth: 920 }}>
           <div className="smallMuted" style={{ marginBottom: 6 }}>Clinic email recipient (override)</div>
           <input
             className="input"
             placeholder="you@clinic.com"
             value={clinicEmailTo}
             onChange={(e) => setClinicEmailTo(e.target.value)}
+            style={{ width: "100%", boxSizing: "border-box" }}
           />
           {!emailOk ? (
             <div style={{ marginTop: 8, color: "crimson", fontWeight: 700 }}>
@@ -373,15 +395,16 @@ export function SettingsPage() {
             gridTemplateColumns: "2fr 1fr 1fr",
             gap: 10,
             alignItems: "center",
+            textAlign: "center",
           }}
         >
-          <div className="badge" style={{ justifySelf: "start" }}>Call Types</div>
-          <div className="badge" style={{ justifySelf: "start" }}>Clinic Email</div>
-          <div className="badge" style={{ justifySelf: "start" }}>Lead Email</div>
+          <div className="badge" style={{ justifySelf: "center" }}>Call Types</div>
+          <div className="badge" style={{ justifySelf: "center" }}>Clinic Email</div>
+          <div className="badge" style={{ justifySelf: "center" }}>Lead Email</div>
 
           {(["NEW_LEAD", "FOLLOW_UP", "REMINDER_24H", "REMINDER_2H"] as CallTypeKey[]).map((k) => (
             <div key={k} style={{ display: "contents" }}>
-              <div style={{ fontWeight: 800 }}>{rowLabel(k)}</div>
+              <div style={{ fontWeight: 800, justifySelf: "center" }}>{rowLabel(k)}</div>
 
               <ToggleButton
                 value={matrix[k].clinic_email}
