@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
+import { useRole } from "../lib/useRole";
 
 function utcLabel(offsetHours: number) {
   const n = Number.isFinite(offsetHours) ? offsetHours : 0;
@@ -10,6 +11,7 @@ function utcLabel(offsetHours: number) {
 }
 
 export function NextJobsPage() {
+  const role = useRole();
   const [data, setData] = useState<any>(null);
 
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
@@ -92,9 +94,7 @@ export function NextJobsPage() {
                     gap: 10,
                   }}
                 >
-                  <div style={{ fontWeight: 700 }}>
-                    {leadLabel || "Next job"}
-                  </div>
+                  <div style={{ fontWeight: 700 }}>{leadLabel || "Next job"}</div>
                   {callType ? <div className="badge">{callType}</div> : null}
                 </div>
 
@@ -111,12 +111,14 @@ export function NextJobsPage() {
         </div>
       )}
 
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
-        <pre className="monoBox" style={{ marginTop: 8 }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </details>
+      {role === "system_admin" && (
+        <details style={{ marginTop: 12 }}>
+          <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw JSON</summary>
+          <pre className="monoBox" style={{ marginTop: 8 }}>
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }
