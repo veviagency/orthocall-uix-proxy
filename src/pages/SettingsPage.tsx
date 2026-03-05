@@ -89,17 +89,9 @@ function defaultMatrix(): EmailMatrix {
 }
 
 export function SettingsPage() {
-  const { role, userId } = useRole();
+  const { role, userId, loading: roleLoading } = useRole();
 
   const canEdit = role === "clinic_admin" || role === "system_admin";
-  if (!canEdit) {
-    return (
-      <div style={{ padding: 16 }}>
-        <h2 style={{ marginTop: 0 }}>Settings</h2>
-        <div className="bannerDanger">Not authorized.</div>
-      </div>
-    );
-  }
 
   const [loading, setLoading] = useState(false);
   const [loadErr, setLoadErr] = useState("");
@@ -185,10 +177,16 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
+    // Türkçe: Hook order safety + gereksiz 403/404 spam önleme:
+    // - role yüklenmeden istek atma
+    // - sadece yetkili rolde load et
+    if (roleLoading) return;
+    if (!canEdit) return;
+
     // Türkçe: Server endpoint hazırsa doldursun; değilse UI boş/placeholder kalsın.
     loadFromServer().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [roleLoading, canEdit]);
 
   async function save() {
     if (!canSave) return;
@@ -231,6 +229,27 @@ export function SettingsPage() {
     if (k === "FOLLOW_UP") return "Follow-Up Call";
     if (k === "REMINDER_24H") return "24 Hour Reminder";
     return "2 Hour Reminder";
+  }
+
+  // OrthoCall UIX: Hook order safety
+  // Türkçe: İlk render'da role boş/unknown olabilir. Bu yüzden "Not authorized" early-return yapmak
+  // hook sırasını bozar (React error #310). Önce tüm hook'lar çalışsın, sonra guard.
+  if (roleLoading) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Settings</h2>
+        <div className="smallMuted">Loading role...</div>
+      </div>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Settings</h2>
+        <div className="bannerDanger">Not authorized.</div>
+      </div>
+    );
   }
 
   return (
