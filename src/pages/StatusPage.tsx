@@ -76,7 +76,9 @@ export function StatusPage() {
   const [activityPaused, setActivityPaused] = useState(false);
 
   const activityRef = useRef<any[]>([]);
-  useEffect(() => { activityRef.current = activity; }, [activity]);
+  useEffect(() => {
+    activityRef.current = activity;
+  }, [activity]);
 
   const tzOffset = useMemo(() => Number(data?.tz_offset_hours ?? 0), [data]);
 
