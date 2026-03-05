@@ -1,4 +1,4 @@
-// src/pages/RangePage.tsx
+// src/pages/RangePage.tsx - V12
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { useRole } from "../lib/useRole";
@@ -15,6 +15,44 @@ function yyyyMmDd(d: Date) {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${dd}`;
 }
+
+const METRICS = [
+  {
+    key: "jobs_total",
+    title: "Total Jobs",
+    help: "Total call jobs created in this range.",
+  },
+  {
+    key: "calls_final_total",
+    title: "Finalized Calls",
+    help: "Calls that the system completed and finalized successfully.",
+  },
+  {
+    key: "calls_connected",
+    title: "Connected Calls",
+    help: "Calls where the lead answered and the call connected.",
+  },
+  {
+    key: "calls_60s",
+    title: "Calls (60s+)",
+    help: "Connected calls with duration ≥ 60 seconds.",
+  },
+  {
+    key: "emails_total",
+    title: "Emails Sent",
+    help: "Total emails sent by the system in this range.",
+  },
+  {
+    key: "dnc_marked",
+    title: "DNC Marked",
+    help: "Leads marked as Do Not Call.",
+  },
+  {
+    key: "booking_ready",
+    title: "Booking Ready",
+    help: "Calls that reached a booking-ready outcome.",
+  },
+] as const;
 
 export function RangePage() {
   const { role } = useRole();
@@ -51,16 +89,6 @@ export function RangePage() {
   const totals = data?.totals || {};
   const days = Array.isArray(data?.days) ? data.days : [];
 
-  const cards = [
-    ["jobs_total", totals.jobs_total ?? 0],
-    ["calls_final_total", totals.calls_final_total ?? 0],
-    ["calls_connected", totals.calls_connected ?? 0],
-    ["calls_60s*", totals.calls_60s ?? 0],
-    ["emails_total", totals.emails_total ?? 0],
-    ["dnc_marked", totals.dnc_marked ?? 0],
-    ["booking_ready", totals.booking_ready ?? 0],
-  ];
-
   return (
     <div style={{ padding: 16 }}>
       <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
@@ -77,79 +105,61 @@ export function RangePage() {
         </button>
       </div>
 
-      {canSeeResultsLinks && (DAILY_RESULTS_URL || WEEKLY_RESULTS_URL) && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: -4, marginBottom: 12 }}>
-          {DAILY_RESULTS_URL && (
-            <a
-              href={DAILY_RESULTS_URL}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.14)",
-                background: "rgba(255,255,255,0.06)",
-                color: "rgba(255,255,255,0.92)",
-                textDecoration: "none",
-                fontWeight: 600,
-              }}
-            >
-              Daily Results
-            </a>
-          )}
-
-          {WEEKLY_RESULTS_URL && (
-            <a
-              href={WEEKLY_RESULTS_URL}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.14)",
-                background: "rgba(255,255,255,0.06)",
-                color: "rgba(255,255,255,0.92)",
-                textDecoration: "none",
-                fontWeight: 600,
-              }}
-            >
-              Weekly Results
-            </a>
-          )}
-        </div>
-      )}
-
       <div className="hRow" style={{ marginTop: 8 }}>
         <h3 style={{ margin: 0 }}>Totals</h3>
         <div className="smallMuted">days: {String(days.length)}</div>
       </div>
 
       <div className="grid2" style={{ marginTop: 10 }}>
-        {cards.map(([k, v]) => (
-          <div
-            key={String(k)}
-            style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: 12,
-              background: "rgba(0,0,0,0.18)",
-            }}
-          >
-            <div className="kpiKey">{String(k)}</div>
-            <div className="kpiVal">{String(v)}</div>
-          </div>
-        ))}
+        {METRICS.map((m) => {
+          const v = (totals as any)?.[m.key] ?? 0;
+          return (
+            <div
+              key={m.key}
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">{m.title}</div>
+              <div className="kpiVal">{String(v)}</div>
+              <div className="smallMuted" style={{ marginTop: 6 }}>
+                {m.help}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="smallMuted" style={{ marginTop: 10 }}>
-        * calls_60s = connected calls with duration_sec &gt;= 60. If duration is missing, this metric may be a lower bound.
-      </div>
+      {canSeeResultsLinks && (DAILY_RESULTS_URL || WEEKLY_RESULTS_URL) ? (
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          {DAILY_RESULTS_URL ? (
+            <a
+              className="btn"
+              href={DAILY_RESULTS_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              Daily Results
+            </a>
+          ) : null}
+
+          {WEEKLY_RESULTS_URL ? (
+            <a
+              className="btn"
+              href={WEEKLY_RESULTS_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              Weekly Results
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       {role === "system_admin" && (
         <details style={{ marginTop: 12 }}>
