@@ -1,4 +1,4 @@
-// src/pages/TodayPage.tsx
+// src/pages/TodayPage.tsx - V12
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
@@ -33,6 +33,44 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
 }
 
+const METRICS = [
+  {
+    key: "jobs_total",
+    title: "Total Jobs",
+    help: "Total call jobs created today.",
+  },
+  {
+    key: "calls_final_total",
+    title: "Finalized Calls",
+    help: "Calls that the system completed and finalized successfully today.",
+  },
+  {
+    key: "calls_connected",
+    title: "Connected Calls",
+    help: "Calls where the lead answered and the call connected today.",
+  },
+  {
+    key: "calls_60s",
+    title: "Calls (60s+)",
+    help: "Connected calls with duration ≥ 60 seconds today.",
+  },
+  {
+    key: "emails_total",
+    title: "Emails Sent",
+    help: "Total emails sent by the system today.",
+  },
+  {
+    key: "dnc_marked",
+    title: "DNC Marked",
+    help: "Leads marked as Do Not Call today.",
+  },
+  {
+    key: "booking_ready",
+    title: "Booking Ready",
+    help: "Calls that reached a booking-ready outcome today.",
+  },
+] as const;
+
 export function TodayPage() {
   const { role } = useRole();
   const [data, setData] = useState<any>(null);
@@ -52,16 +90,6 @@ export function TodayPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const cards = [
-    ["jobs_total", totals.jobs_total ?? 0],
-    ["calls_final_total", totals.calls_final_total ?? 0],
-    ["calls_connected", totals.calls_connected ?? 0],
-    ["calls_60s*", totals.calls_60s ?? 0],
-    ["emails_total", totals.emails_total ?? 0],
-    ["dnc_marked", totals.dnc_marked ?? 0],
-    ["booking_ready", totals.booking_ready ?? 0],
-  ];
-
   return (
     <div style={{ padding: 16 }}>
       <div className="hRow" style={{ marginBottom: 12 }}>
@@ -78,25 +106,26 @@ export function TodayPage() {
       </div>
 
       <div className="grid2">
-        {cards.map(([k, v]) => (
-          <div
-            key={String(k)}
-            style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: 12,
-              background: "rgba(0,0,0,0.18)",
-            }}
-          >
-            <div className="kpiKey">{String(k)}</div>
-            <div className="kpiVal">{String(v)}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="smallMuted" style={{ marginTop: 10 }}>
-        * calls_60s = connected calls with duration_sec &gt;= 60. If duration is
-        missing, this metric may be a lower bound.
+        {METRICS.map((m) => {
+          const v = (totals as any)?.[m.key] ?? 0;
+          return (
+            <div
+              key={m.key}
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                padding: 12,
+                background: "rgba(0,0,0,0.18)",
+              }}
+            >
+              <div className="kpiKey">{m.title}</div>
+              <div className="kpiVal">{String(v)}</div>
+              <div className="smallMuted" style={{ marginTop: 6 }}>
+                {m.help}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {role === "system_admin" && (
