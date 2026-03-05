@@ -17,7 +17,7 @@ function yyyyMmDd(d: Date) {
 }
 
 export function RangePage() {
-  const role = useRole();
+  const { role } = useRole();
 
   // OrthoCall UIX: Results sheet quick links (Range page)
   // Türkçe: Clinic viewer görmez. Operator/Admin/System admin görür.
