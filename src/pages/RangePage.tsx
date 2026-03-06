@@ -1,4 +1,4 @@
-// src/pages/RangePage.tsx - V12
+// src/pages/RangePage.tsx - V14
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { useRole } from "../lib/useRole";
@@ -51,6 +51,12 @@ const METRICS = [
     key: "booking_ready",
     title: "Booking Ready",
     help: "Calls that reached a booking-ready outcome.",
+  },
+  {
+    // Türkçe: Gerçek booked metriği; sadece booking confirm/write success sonrası artar.
+    key: "booked_confirmed",
+    title: "Booked",
+    help: "Calls that successfully produced a confirmed booking in this range.",
   },
 ] as const;
 
