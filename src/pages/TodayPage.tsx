@@ -69,6 +69,12 @@ const METRICS = [
     title: "Booking Ready",
     help: "Calls that reached a booking-ready outcome today.",
   },
+  {
+    // Türkçe: Gerçek booked metriği; sadece booking confirm/write success sonrası artar.
+    key: "booked_confirmed",
+    title: "Booked",
+    help: "Calls that successfully produced a confirmed booking today.",
+  },
 ] as const;
 
 export function TodayPage() {
