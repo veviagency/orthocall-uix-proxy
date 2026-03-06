@@ -1,4 +1,4 @@
-// src/pages/TodayPage.tsx - V12
+// src/pages/TodayPage.tsx - V14
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
