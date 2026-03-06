@@ -102,6 +102,9 @@ export function SettingsPage() {
   // Calling hours override (empty => server/env default)
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
+  // Türkçe: 2. aralık da UIX'ten ayrı girilebilsin.
+  const [startTime2, setStartTime2] = useState<string>("");
+  const [endTime2, setEndTime2] = useState<string>("");
 
   // Email policy matrix override
   const [matrix, setMatrix] = useState<EmailMatrix>(() => defaultMatrix());
@@ -111,13 +114,28 @@ export function SettingsPage() {
 
   const startNorm = useMemo(() => normalizeTimeHHMM(startTime), [startTime]);
   const endNorm = useMemo(() => normalizeTimeHHMM(endTime), [endTime]);
+  const start2Norm = useMemo(() => normalizeTimeHHMM(startTime2), [startTime2]);
+  const end2Norm = useMemo(() => normalizeTimeHHMM(endTime2), [endTime2]);
 
-  const timeFormatOk =
+  const timePair1Ok =
+    (!startTime.trim() && !endTime.trim()) ||
+    (!!startTime.trim() && !!endTime.trim());
+
+  const timePair2Ok =
+    (!startTime2.trim() && !endTime2.trim()) ||
+    (!!startTime2.trim() && !!endTime2.trim());
+
+  const timeFormatOk1 =
     (!startTime.trim() || !!startNorm) && (!endTime.trim() || !!endNorm);
 
+  const timeFormatOk2 =
+    (!startTime2.trim() || !!start2Norm) && (!endTime2.trim() || !!end2Norm);
+
+  const timeFormatOk = timeFormatOk1 && timeFormatOk2;
+
   const timeOrderOk = useMemo(() => {
-    // empty means "use default" => ok
-    if (!startTime.trim() || !endTime.trim()) return true;
+    if (!startTime.trim() && !endTime.trim()) return true;
+    if (!startTime.trim() || !endTime.trim()) return false;
     if (!startNorm || !endNorm) return false;
     const a = toMinutesOrNaN(startNorm);
     const b = toMinutesOrNaN(endNorm);
@@ -125,9 +143,37 @@ export function SettingsPage() {
     return a < b;
   }, [startTime, endTime, startNorm, endNorm]);
 
+  const timeOrderOk2 = useMemo(() => {
+    if (!startTime2.trim() && !endTime2.trim()) return true;
+    if (!startTime2.trim() || !endTime2.trim()) return false;
+    if (!start2Norm || !end2Norm) return false;
+    const a = toMinutesOrNaN(start2Norm);
+    const b = toMinutesOrNaN(end2Norm);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+    return a < b;
+  }, [startTime2, endTime2, start2Norm, end2Norm]);
+
+  const timeGapOk = useMemo(() => {
+    // Türkçe: 2. aralık, 1. aralığın bitişinden önce başlayamaz. Eşitlik serbest.
+    if (!endTime.trim() || !startTime2.trim()) return true;
+    if (!endNorm || !start2Norm) return false;
+    const end1 = toMinutesOrNaN(endNorm);
+    const start2 = toMinutesOrNaN(start2Norm);
+    if (!Number.isFinite(end1) || !Number.isFinite(start2)) return false;
+    return start2 >= end1;
+  }, [endTime, startTime2, endNorm, start2Norm]);
+
   const emailOk = useMemo(() => isValidEmailOrEmpty(clinicEmailTo), [clinicEmailTo]);
 
-  const canSave = reason.trim() && timeFormatOk && timeOrderOk && emailOk;
+  const canSave =
+    reason.trim() &&
+    timePair1Ok &&
+    timePair2Ok &&
+    timeFormatOk &&
+    timeOrderOk &&
+    timeOrderOk2 &&
+    timeGapOk &&
+    emailOk;
 
   async function loadFromServer() {
     setLoadErr("");
@@ -147,6 +193,8 @@ export function SettingsPage() {
           : (root?.call_hours || {});
       const st = String(ch?.start || ch?.start_hhmm || "").trim();
       const en = String(ch?.end || ch?.end_hhmm || "").trim();
+      const st2 = String(ch?.start_2 || ch?.interval_2_start || ch?.start2 || "").trim();
+      const en2 = String(ch?.end_2 || ch?.interval_2_end || ch?.end2 || "").trim();
 
       const m =
         root && typeof root.email_matrix === "object"
@@ -176,6 +224,8 @@ export function SettingsPage() {
 
       setStartTime(st);
       setEndTime(en);
+      setStartTime2(st2);
+      setEndTime2(en2);
       setMatrix(nextMatrix);
       setClinicEmailTo(ce);
     } catch (e: any) {
@@ -206,9 +256,11 @@ export function SettingsPage() {
     try {
       const patch = {
         calling_hours: {
-          // empty => server/env default; Part-2 server validate edecek
+          // Türkçe: Boş bırakılan aralık ilgili interval için env default'a döner.
           start: startTime.trim(),
           end: endTime.trim(),
+          start_2: startTime2.trim(),
+          end_2: endTime2.trim(),
         },
         email_matrix: matrix,
         clinic_email_to_override: clinicEmailTo.trim(),
