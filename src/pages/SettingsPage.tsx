@@ -353,9 +353,10 @@ export function SettingsPage() {
       >
         <div style={{ fontWeight: 900, marginBottom: 6 }}>Calling Hours</div>
         <div className="smallMuted" style={{ marginBottom: 10 }}>
-          Enter in 24-hour format (HH:MM). Example: 09:15. Leave empty to use system defaults.
+          Enter in 24-hour format (HH:MM). Example: 09:15. Leave an interval fully empty to use system defaults for that interval.
         </div>
 
+        <div className="smallMuted" style={{ marginBottom: 8, fontWeight: 800 }}>Interval 1</div>
         <div
           style={{
             display: "grid",
@@ -397,15 +398,87 @@ export function SettingsPage() {
           </div>
         </div>
 
-        {!timeFormatOk ? (
+        <div className="smallMuted" style={{ marginTop: 12, marginBottom: 8, fontWeight: 800 }}>Interval 2</div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "40% 10% 40%",
+            justifyContent: "center",
+            alignItems: "start",
+          }}
+        >
+          <div>
+            <div className="smallMuted" style={{ marginBottom: 6 }}>Start time</div>
+            <input
+              className="input"
+              placeholder="Enter second interval start"
+              value={startTime2}
+              onChange={(e) => setStartTime2(e.target.value)}
+              onBlur={() => {
+                const n = normalizeTimeHHMM(startTime2);
+                if (n) setStartTime2(n);
+              }}
+              style={{ width: "100%", boxSizing: "border-box" }}
+            />
+          </div>
+
+          <div />
+
+          <div>
+            <div className="smallMuted" style={{ marginBottom: 6 }}>End time</div>
+            <input
+              className="input"
+              placeholder="Enter second interval end"
+              value={endTime2}
+              onChange={(e) => setEndTime2(e.target.value)}
+              onBlur={() => {
+                const n = normalizeTimeHHMM(endTime2);
+                if (n) setEndTime2(n);
+              }}
+              style={{ width: "100%", boxSizing: "border-box" }}
+            />
+          </div>
+        </div>
+
+        {!timePair1Ok ? (
           <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
-            Invalid time format. Use HH:MM (24-hour).
+            Interval 1 requires both start and end time.
           </div>
         ) : null}
 
-        {timeFormatOk && !timeOrderOk ? (
+        {timePair1Ok && !timeFormatOk1 ? (
           <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
-            Start time must be earlier than end time.
+            Interval 1 has an invalid time format. Use HH:MM (24-hour).
+          </div>
+        ) : null}
+
+        {timePair1Ok && timeFormatOk1 && !timeOrderOk ? (
+          <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
+            Interval 1 start time must be earlier than end time.
+          </div>
+        ) : null}
+
+        {!timePair2Ok ? (
+          <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
+            Interval 2 requires both start and end time.
+          </div>
+        ) : null}
+
+        {timePair2Ok && !timeFormatOk2 ? (
+          <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
+            Interval 2 has an invalid time format. Use HH:MM (24-hour).
+          </div>
+        ) : null}
+
+        {timePair2Ok && timeFormatOk2 && !timeOrderOk2 ? (
+          <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
+            Interval 2 start time must be earlier than end time.
+          </div>
+        ) : null}
+
+        {timePair1Ok && timePair2Ok && timeFormatOk1 && timeFormatOk2 && timeOrderOk && timeOrderOk2 && !timeGapOk ? (
+          <div style={{ marginTop: 10, color: "crimson", fontWeight: 700 }}>
+            Interval 2 start time cannot be earlier than Interval 1 end time.
           </div>
         ) : null}
       </div>
