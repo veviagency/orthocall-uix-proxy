@@ -35,7 +35,7 @@ function fmtCentralTime(ms: any, offsetHours: number) {
 }
 
 export function StatusPage() {
-  const { role } = useRole();
+  const { role, userId } = useRole();
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState<string>("");
 
@@ -165,6 +165,10 @@ export function StatusPage() {
 
   const canControl =
     role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
+
+  // OrthoCall UIX: Emergency Controls sadece system_admin
+  // Türkçe: clinic_admin bile görmesin/kullanamasın.
+  const canKillSwitch = role === "system_admin";
 
   const nowMs = Date.now();
   const staleAgeMs = lastOkAtMs ? Math.max(0, nowMs - lastOkAtMs) : 0;
@@ -566,6 +570,15 @@ export function StatusPage() {
       )}
 
       {canControl ? <PauseResumePanel onDone={load} /> : null}
+
+      {canKillSwitch ? (
+        <EmergencyControls
+          killState={data?.kill_switch || {}}
+          tzOffset={tzOffset}
+          userId={userId || ""}
+          onDone={load}
+        />
+      ) : null}
     </div>
   );
 }
@@ -611,13 +624,21 @@ function PauseResumePanel({ onDone }: { onDone: () => Promise<void> }) {
   }
 
   return (
-    <div style={{ marginTop: 16, padding: 12, border: "1px solid #444" }}>
-      <h3>Control Surface (Pause/Resume)</h3>
+    <div
+      style={{
+        marginTop: 16,
+        padding: 12,
+        border: "1px solid #444",
+        borderRadius: 12,
+        background: "rgba(0,0,0,0.18)",
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: 8 }}>Control Surface (Pause/Resume)</h3>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input
           className="input"
-          style={{ flex: 1 }}
+          style={{ flex: "1 1 320px" }}
           placeholder="Reason (required)"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -629,6 +650,160 @@ function PauseResumePanel({ onDone }: { onDone: () => Promise<void> }) {
           Resume
         </button>
       </div>
+    </div>
+  );
+}
+
+// OrthoCall UIX: Emergency Controls (system_admin only)
+// Türkçe:
+// - Settings değil, Status sayfasında operasyonel kart olarak durur.
+// - Env kill-switch UI'dan gerçekten kapatılamaz; kullanıcıyı yanlış yönlendirmeyelim.
+function EmergencyControls({
+  killState,
+  tzOffset,
+  userId,
+  onDone,
+}: {
+  killState: any;
+  tzOffset: number;
+  userId: string;
+  onDone: () => Promise<void>;
+}) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const enabled = !!killState?.enabled;
+  const envEnabled = !!killState?.env_enabled;
+  const runtimeEnabled = !!killState?.runtime_enabled;
+
+  const source = envEnabled ? "ENV" : runtimeEnabled ? "RUNTIME" : "—";
+  const changed = fmtCentralTime(killState?.updated_at_ms, tzOffset) || "—";
+  const currentReason = String(killState?.reason || "").trim();
+
+  async function setKillSwitch(nextEnabled: boolean) {
+    if (!reason.trim()) {
+      alert("Reason required");
+      return;
+    }
+
+    const actionLabel = nextEnabled ? "ENABLE" : "DISABLE";
+    const ok = confirm(`Are you sure you want to ${actionLabel} the Kill Switch? (Double confirm)`);
+    if (!ok) return;
+
+    setBusy(true);
+    try {
+      await opsFetch("/kill-switch", {
+        method: "POST",
+        body: {
+          enabled: nextEnabled,
+          reason: reason.trim(),
+          user_id: userId || "",
+        },
+      });
+
+      alert(nextEnabled ? "Kill-switch enabled." : "Kill-switch disabled.");
+      setReason("");
+      await onDone();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        padding: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(255,90,90,0.35)",
+        background: "rgba(255,90,90,0.06)",
+      }}
+    >
+      <div className="hRow" style={{ marginBottom: 8, alignItems: "flex-start" }}>
+        <div>
+          <h3 style={{ margin: 0 }}>Emergency Controls</h3>
+          <div className="smallMuted" style={{ marginTop: 6 }}>
+            Server stays online, but OrthoCall stops picking jobs and starting new calls.
+          </div>
+        </div>
+
+        <div
+          className="badge"
+          style={{ borderColor: enabled ? "rgba(255,90,90,0.55)" : "rgba(255,255,255,0.14)" }}
+        >
+          Kill Switch: {enabled ? "ON" : "OFF"}
+        </div>
+      </div>
+
+      <div className="grid2" style={{ marginTop: 10 }}>
+        <div
+          style={{
+            border: "1px solid rgba(255,255,255,0.10)",
+            borderRadius: 12,
+            padding: 12,
+            background: "rgba(0,0,0,0.18)",
+          }}
+        >
+          <div className="kpiKey">Current State</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>{enabled ? "ON" : "OFF"}</div>
+          <div className="smallMuted" style={{ marginTop: 6 }}>source: {source}</div>
+          <div className="smallMuted" style={{ marginTop: 6 }}>changed: {changed}</div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid rgba(255,255,255,0.10)",
+            borderRadius: 12,
+            padding: 12,
+            background: "rgba(0,0,0,0.18)",
+          }}
+        >
+          <div className="kpiKey">Current Reason</div>
+          <div style={{ marginTop: 6 }}>{currentReason || "—"}</div>
+          {envEnabled ? (
+            <div className="smallMuted" style={{ marginTop: 8 }}>
+              This kill-switch is enforced by ENV and cannot be cleared from UIX.
+            </div>
+          ) : (
+            <div className="smallMuted" style={{ marginTop: 8 }}>
+              Runtime kill-switch can be enabled/disabled here.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
+        <input
+          className="input"
+          style={{ flex: "1 1 360px" }}
+          placeholder="Reason (required)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+
+        <button
+          className="btn btnDanger"
+          onClick={() => setKillSwitch(true)}
+          disabled={busy}
+        >
+          Enable Kill Switch
+        </button>
+
+        <button
+          className="btn"
+          onClick={() => setKillSwitch(false)}
+          disabled={busy || envEnabled}
+          title={envEnabled ? "ENV kill-switch cannot be disabled from UIX." : ""}
+        >
+          Disable Kill Switch
+        </button>
+      </div>
+
+      {!reason.trim() ? (
+        <div className="smallMuted" style={{ marginTop: 8 }}>
+          Reason is required for audit trail.
+        </div>
+      ) : null}
     </div>
   );
 }
