@@ -13,7 +13,8 @@ function utcLabel(offsetHours: number) {
 // OrthoCall UIX: Status ekranında merkezi saatle okunabilir timestamp
 function fmtCentralTime(ms: any, offsetHours: number) {
   const n = Number(ms);
-  if (!Number.isFinite(n)) return "";
+  // Türkçe: 0 / boş / invalid timestamp => 1969 göstermeyelim.
+  if (!Number.isFinite(n) || n <= 0) return "";
   const off = Number.isFinite(offsetHours) ? offsetHours : 0;
   const d = new Date(n + off * 3600000);
 
