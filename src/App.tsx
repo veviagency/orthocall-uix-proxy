@@ -8,6 +8,7 @@ import { TodayPage } from "./pages/TodayPage";
 import { RangePage } from "./pages/RangePage";
 import { NextJobsPage } from "./pages/NextJobsPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { CRMControlPage } from "./pages/CRMControlPage";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("");
@@ -84,16 +85,21 @@ function humanRoleLabel(role?: string) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<"status" | "today" | "range" | "jobs" | "settings">("status");
+  const [tab, setTab] = useState<"status" | "today" | "range" | "jobs" | "crm" | "settings">("status");
   const { role, loading } = useRole();
+
+  // OrthoCall UIX: CRM Control sadece operator/admin/system_admin
+  const canSeeCrmControl =
+    role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
 
   // OrthoCall UIX: Settings sekmesi sadece clinic_admin + system_admin
   const canSeeSettings = role === "clinic_admin" || role === "system_admin";
 
   useEffect(() => {
-    // Türkçe: Rol düşerse (örn. viewer) Settings'te kalmasın.
+    // Türkçe: Rol düşerse (örn. viewer) korumalı sekmelerde kalmasın.
+    if (tab === "crm" && !canSeeCrmControl) setTab("status");
     if (tab === "settings" && !canSeeSettings) setTab("status");
-  }, [tab, canSeeSettings]);
+  }, [tab, canSeeCrmControl, canSeeSettings]);
 
   return (
     <AuthGate>
@@ -125,6 +131,15 @@ export default function App() {
               Next Jobs
             </button>
 
+            {canSeeCrmControl ? (
+              <button
+                className={`tabBtn ${tab === "crm" ? "tabBtnActive" : ""}`}
+                onClick={() => setTab("crm")}
+              >
+                CRM Control
+              </button>
+            ) : null}
+
             {canSeeSettings ? (
               <button
                 className={`tabBtn ${tab === "settings" ? "tabBtnActive" : ""}`}
@@ -145,6 +160,7 @@ export default function App() {
           {tab === "today" ? <TodayPage /> : null}
           {tab === "range" ? <RangePage /> : null}
           {tab === "jobs" ? <NextJobsPage /> : null}
+          {tab === "crm" ? <CRMControlPage /> : null}
           {tab === "settings" ? <SettingsPage /> : null}
         </div>
 
