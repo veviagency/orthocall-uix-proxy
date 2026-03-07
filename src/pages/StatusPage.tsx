@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
 import { useRole } from "../lib/useRole";
+import { startLiveListenSession, stopLiveListenSession } from "./lib/liveListenPlayer";
 
 function utcLabel(offsetHours: number) {
   const n = Number.isFinite(offsetHours) ? offsetHours : 0;
@@ -47,6 +48,10 @@ export function StatusPage() {
   // OrthoCall UIX: last successful status poll (stale detection)
   const [lastOkAtMs, setLastOkAtMs] = useState<number>(0);
   const [lastErrAtMs, setLastErrAtMs] = useState<number>(0);
+
+  // OrthoCall UIX: live listen browser session state
+  const [listenState, setListenState] = useState<"idle" | "connecting" | "live" | "ended" | "error">("idle");
+  const [listenNote, setListenNote] = useState<string>("");
 
   // OrthoCall UIX: Recent Activity (signal feed)
   // Türkçe: UIX kapat-aç olsa bile satırlar dursun (Clear'a basana kadar).
@@ -243,14 +248,37 @@ export function StatusPage() {
 
   async function openLiveListenSession() {
     try {
+      if (listenState === "live" || listenState === "connecting") {
+        await stopLiveListenSession();
+        setListenState("idle");
+        setListenNote("");
+        return;
+      }
+
+      setListenState("connecting");
+      setListenNote("Preparing secure audio relay...");
+
       const r = await opsFetch("/live-listen/session", { method: "POST", body: {} });
-      alert(String(r?.message || "Live listen session is not available yet."));
+      const wsUrl = String(r?.ws_url || "").trim();
+
+      if (!r?.ok || !r?.ready || !wsUrl) {
+        throw new Error(String(r?.message || r?.error || "live_listen_not_ready"));
+      }
+
+      await startLiveListenSession(wsUrl, (s: any) => {
+        const st = String(s?.status || "idle") as "idle" | "connecting" | "live" | "ended" | "error";
+        setListenState(st);
+        setListenNote(String(s?.note || ""));
+      });
     } catch (e: any) {
       const msg =
         e?.payload?.message ||
         e?.payload?.error ||
         e?.message ||
         String(e);
+
+      setListenState("error");
+      setListenNote(String(msg));
       alert(String(msg));
     }
   }
@@ -578,9 +606,15 @@ export function StatusPage() {
               disabled={!liveListenCapable}
               title={!activeCall ? "You can only listen while a live call is in progress." : ""}
             >
-              Listen Live
+              {listenState === "live" || listenState === "connecting" ? "Stop Listening" : "Listen Live"}
             </button>
           </div>
+
+          {listenNote ? (
+            <div className="smallMuted" style={{ marginTop: 8 }}>
+              {listenNote}
+            </div>
+          ) : null}
 
           {activeCall ? (
             <div className="grid2" style={{ marginTop: 10 }}>
