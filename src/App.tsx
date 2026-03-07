@@ -1,4 +1,4 @@
-// src/App.tsx - V12
+// src/App.tsx - V16
 import { useEffect, useState } from "react";
 import "./App.css";
 import { supabase } from "./lib/supabaseClient";
