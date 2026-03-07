@@ -26,13 +26,28 @@ type LeadPreview = {
   } | null;
 };
 
-function onlyUsDigits(raw: string) {
-  return String(raw || "").replace(/\D/g, "").slice(0, 10);
+function sanitizeCountryCode(raw: string) {
+  const digits = String(raw || "").replace(/\D/g, "").slice(0, 4);
+  return `+${digits || "1"}`;
 }
 
-function asE164FromUiDigits(digits10: string) {
-  const d = onlyUsDigits(digits10);
-  return d ? `+1${d}` : "";
+function onlyPhoneDigits(raw: string) {
+  return String(raw || "").replace(/\D/g, "").slice(0, 15);
+}
+
+function buildE164(countryCode: string, localNumber: string) {
+  const cc = sanitizeCountryCode(countryCode);
+  const local = onlyPhoneDigits(localNumber);
+  if (!local) return "";
+  return `${cc}${local}`;
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="smallMuted" style={{ marginBottom: 6 }}>
+      {children}
+    </div>
+  );
 }
 
 function SummaryBox({ lead }: { lead: LeadPreview }) {
@@ -41,28 +56,111 @@ function SummaryBox({ lead }: { lead: LeadPreview }) {
   return (
     <div
       style={{
-        marginTop: 12,
+        marginTop: 14,
         border: "1px solid rgba(255,255,255,0.10)",
         borderRadius: 12,
         padding: 12,
         background: "rgba(255,255,255,0.03)",
+        overflow: "hidden",
       }}
     >
-      <div style={{ fontWeight: 800 }}>{lead.display_name || "Unknown"}</div>
-      <div className="smallMuted" style={{ marginTop: 6 }}>
-        phone: {lead.phone_e164 || "—"}
+      <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>
+        {lead.display_name || "Unknown"}
       </div>
+
+      <div className="smallMuted" style={{ marginTop: 6, wordBreak: "break-word" }}>
+        Phone: {lead.phone_e164 || "—"}
+      </div>
+
       <div className="smallMuted" style={{ marginTop: 6 }}>
-        state: {lead.current_state}
+        State: {lead.current_state}
         {lead.out_of_orthocall ? " • already manual" : ""}
         {lead.dnc ? " • DNC" : ""}
       </div>
+
       <div className="smallMuted" style={{ marginTop: 6 }}>
-        open jobs: queued={jobs.queued} • picked={jobs.picked} • running={jobs.running}
+        Open jobs: queued={jobs.queued} • picked={jobs.picked} • running={jobs.running}
       </div>
+
       <div className="smallMuted" style={{ marginTop: 6 }}>
-        live call: {lead.live_call_active ? `yes (${lead.live_call?.status || "active"})` : "no"}
+        Live call: {lead.live_call_active ? `yes (${lead.live_call?.status || "active"})` : "no"}
       </div>
+    </div>
+  );
+}
+
+function CardShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 14,
+        padding: 14,
+        background: "rgba(255,255,255,0.02)",
+        minWidth: 0,
+        overflow: "hidden",
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: 6 }}>{title}</h3>
+      <div className="smallMuted" style={{ marginBottom: 12, lineHeight: 1.45 }}>
+        {subtitle}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PhoneLookupRow({
+  countryCode,
+  setCountryCode,
+  phone,
+  setPhone,
+  onFind,
+  busy,
+}: {
+  countryCode: string;
+  setCountryCode: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  onFind: () => Promise<void>;
+  busy: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
+      <input
+        className="input"
+        style={{
+          width: 88,
+          flex: "0 0 88px",
+          textAlign: "center",
+        }}
+        value={countryCode}
+        onChange={(e) => setCountryCode(sanitizeCountryCode(e.target.value))}
+        placeholder="+1"
+      />
+
+      <input
+        className="input"
+        style={{
+          flex: "1 1 220px",
+          minWidth: 0,
+        }}
+        placeholder="5551234567"
+        value={phone}
+        onChange={(e) => setPhone(onlyPhoneDigits(e.target.value))}
+      />
+
+      <button className="btn" onClick={onFind} disabled={busy || !onlyPhoneDigits(phone)}>
+        Find lead
+      </button>
     </div>
   );
 }
@@ -73,6 +171,7 @@ export function CRMControlPage() {
   const canUse =
     role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
 
+  const [moveCountryCode, setMoveCountryCode] = useState("+1");
   const [movePhone, setMovePhone] = useState("");
   const [moveReason, setMoveReason] = useState("");
   const [moveConfirm, setMoveConfirm] = useState(false);
@@ -81,6 +180,7 @@ export function CRMControlPage() {
   const [moveErr, setMoveErr] = useState("");
   const [moveOk, setMoveOk] = useState("");
 
+  const [noteCountryCode, setNoteCountryCode] = useState("+1");
   const [notePhone, setNotePhone] = useState("");
   const [noteText, setNoteText] = useState("");
   const [notePreview, setNotePreview] = useState<LeadPreview | null>(null);
@@ -103,13 +203,28 @@ export function CRMControlPage() {
     return !notePreview || !noteText.trim() || noteLoading;
   }, [notePreview, noteText, noteLoading]);
 
+  function resetMoveResolvedState() {
+    setMovePreview(null);
+    setMoveErr("");
+    setMoveOk("");
+    setMoveConfirm(false);
+    setMoveReason("");
+  }
+
+  function resetNoteResolvedState() {
+    setNotePreview(null);
+    setNoteErr("");
+    setNoteOk("");
+    setNoteText("");
+  }
+
   async function resolveMoveLead() {
     setMoveErr("");
     setMoveOk("");
     setMovePreview(null);
 
     try {
-      const phone = asE164FromUiDigits(movePhone);
+      const phone = buildE164(moveCountryCode, movePhone);
       if (!phone) throw new Error("phone_required");
 
       setMoveLoading(true);
@@ -128,7 +243,7 @@ export function CRMControlPage() {
     setMoveOk("");
 
     try {
-      const phone = asE164FromUiDigits(movePhone);
+      const phone = buildE164(moveCountryCode, movePhone);
       if (!phone) throw new Error("phone_required");
 
       setMoveLoading(true);
@@ -160,7 +275,7 @@ export function CRMControlPage() {
     setNotePreview(null);
 
     try {
-      const phone = asE164FromUiDigits(notePhone);
+      const phone = buildE164(noteCountryCode, notePhone);
       if (!phone) throw new Error("phone_required");
 
       setNoteLoading(true);
@@ -179,7 +294,7 @@ export function CRMControlPage() {
     setNoteOk("");
 
     try {
-      const phone = asE164FromUiDigits(notePhone);
+      const phone = buildE164(noteCountryCode, notePhone);
       if (!phone) throw new Error("phone_required");
 
       setNoteLoading(true);
@@ -221,7 +336,7 @@ export function CRMControlPage() {
   }
 
   return (
-    <div>
+    <div style={{ padding: 16, minWidth: 0 }}>
       <h2 style={{ marginTop: 0, marginBottom: 4 }}>CRM Control</h2>
       <div className="smallMuted" style={{ marginBottom: 16 }}>
         Controlled CRM actions for leads already inside OrthoCall.
@@ -232,178 +347,172 @@ export function CRMControlPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
           gap: 16,
+          alignItems: "start",
         }}
       >
-        <div
-          style={{
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 14,
-            padding: 14,
-            background: "rgba(255,255,255,0.02)",
-          }}
+        <CardShell
+          title="Move to Manual"
+          subtitle="This action moves the lead to Manual Review and cancels future OrthoCall jobs for that lead."
         >
-          <h3 style={{ marginTop: 0, marginBottom: 6 }}>Move to Manual</h3>
-          <div className="smallMuted" style={{ marginBottom: 12 }}>
-            This action moves the lead to Manual Review and cancels future OrthoCall jobs for that lead.
-          </div>
+          <FieldLabel>Phone</FieldLabel>
 
-          <div className="smallMuted" style={{ marginBottom: 6 }}>Phone</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div
-              style={{
-                minWidth: 52,
-                textAlign: "center",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(0,0,0,0.25)",
-                color: "rgba(255,255,255,0.78)",
-              }}
-            >
-              +1
-            </div>
-            <input
-              className="input"
-              style={{ flex: 1 }}
-              placeholder="5551234567"
-              value={movePhone}
-              onChange={(e) => {
-                setMovePhone(onlyUsDigits(e.target.value));
-                setMovePreview(null);
-                setMoveErr("");
-                setMoveOk("");
-              }}
-            />
-            <button className="btn" onClick={resolveMoveLead} disabled={moveLoading}>
-              Find lead
-            </button>
-          </div>
-
-          {movePreview ? <SummaryBox lead={movePreview} /> : null}
-
-          <label
-            className="smallMuted"
-            style={{ display: "flex", gap: 8, alignItems: "flex-start", marginTop: 14 }}
-          >
-            <input
-              type="checkbox"
-              checked={moveConfirm}
-              onChange={(e) => setMoveConfirm(e.target.checked)}
-            />
-            <span>
-              I understand that moving this lead to Manual will stop OrthoCall automation and
-              cancel future scheduled jobs for this lead.
-            </span>
-          </label>
-
-          <div className="smallMuted" style={{ marginTop: 12, marginBottom: 6 }}>
-            Reason
-          </div>
-          <textarea
-            className="input"
-            rows={4}
-            placeholder="This reason will be added automatically as an internal CRM note so the team can understand later why the lead was moved to Manual."
-            value={moveReason}
-            onChange={(e) => setMoveReason(e.target.value)}
+          <PhoneLookupRow
+            countryCode={moveCountryCode}
+            setCountryCode={(v) => {
+              setMoveCountryCode(v);
+              resetMoveResolvedState();
+            }}
+            phone={movePhone}
+            setPhone={(v) => {
+              setMovePhone(v);
+              resetMoveResolvedState();
+            }}
+            onFind={resolveMoveLead}
+            busy={moveLoading}
           />
 
-          {movePreview?.live_call_active ? (
-            <div className="smallMuted" style={{ marginTop: 10 }}>
-              Move is blocked while this lead has an active live call.
-            </div>
-          ) : null}
-
-          {movePreview?.out_of_orthocall ? (
-            <div className="smallMuted" style={{ marginTop: 10 }}>
-              This lead is already in Manual.
-            </div>
-          ) : null}
-
           {moveErr ? (
-            <div style={{ marginTop: 10, color: "rgba(255,120,120,0.95)" }}>{moveErr}</div>
+            <div style={{ marginTop: 10, color: "rgba(255,120,120,0.95)", wordBreak: "break-word" }}>
+              {moveErr}
+            </div>
           ) : null}
+
           {moveOk ? (
-            <div style={{ marginTop: 10, color: "rgba(120,255,170,0.95)" }}>{moveOk}</div>
+            <div style={{ marginTop: 10, color: "rgba(120,255,170,0.95)", wordBreak: "break-word" }}>
+              {moveOk}
+            </div>
           ) : null}
 
-          <div style={{ marginTop: 12 }}>
-            <button className="btn" onClick={submitMove} disabled={moveDisabled}>
-              Move
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 14,
-            padding: 14,
-            background: "rgba(255,255,255,0.02)",
-          }}
-        >
-          <h3 style={{ marginTop: 0, marginBottom: 6 }}>Add Internal Comment</h3>
-          <div className="smallMuted" style={{ marginBottom: 12 }}>
-            This action only adds an internal Trello note. It does not change automation state.
-          </div>
-
-          <div className="smallMuted" style={{ marginBottom: 6 }}>Phone</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {movePreview ? (
             <div
               style={{
-                minWidth: 52,
-                textAlign: "center",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(0,0,0,0.25)",
-                color: "rgba(255,255,255,0.78)",
+                marginTop: 14,
+                paddingTop: 14,
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                minWidth: 0,
               }}
             >
-              +1
+              <SummaryBox lead={movePreview} />
+
+              <label
+                className="smallMuted"
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                  marginTop: 14,
+                  lineHeight: 1.45,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={moveConfirm}
+                  onChange={(e) => setMoveConfirm(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span>
+                  I understand that moving this lead to Manual will stop OrthoCall automation and
+                  cancel future scheduled jobs for this lead.
+                </span>
+              </label>
+
+              <div style={{ marginTop: 12 }}>
+                <FieldLabel>Reason</FieldLabel>
+                <textarea
+                  className="input"
+                  rows={4}
+                  style={{ minHeight: 104 }}
+                  placeholder="This reason will be added automatically as an internal CRM note so the team can understand later why the lead was moved to Manual."
+                  value={moveReason}
+                  onChange={(e) => setMoveReason(e.target.value)}
+                />
+              </div>
+
+              {movePreview.live_call_active ? (
+                <div className="smallMuted" style={{ marginTop: 10 }}>
+                  Move is blocked while this lead has an active live call.
+                </div>
+              ) : null}
+
+              {movePreview.out_of_orthocall ? (
+                <div className="smallMuted" style={{ marginTop: 10 }}>
+                  This lead is already in Manual.
+                </div>
+              ) : null}
+
+              <div style={{ marginTop: 12 }}>
+                <button className="btn" onClick={submitMove} disabled={moveDisabled}>
+                  Move
+                </button>
+              </div>
             </div>
-            <input
-              className="input"
-              style={{ flex: 1 }}
-              placeholder="5551234567"
-              value={notePhone}
-              onChange={(e) => {
-                setNotePhone(onlyUsDigits(e.target.value));
-                setNotePreview(null);
-                setNoteErr("");
-                setNoteOk("");
-              }}
-            />
-            <button className="btn" onClick={resolveNoteLead} disabled={noteLoading}>
-              Find lead
-            </button>
-          </div>
+          ) : null}
+        </CardShell>
 
-          {notePreview ? <SummaryBox lead={notePreview} /> : null}
+        <CardShell
+          title="Add Internal Comment"
+          subtitle="This action only adds an internal Trello note. It does not change automation state."
+        >
+          <FieldLabel>Phone</FieldLabel>
 
-          <div className="smallMuted" style={{ marginTop: 12, marginBottom: 6 }}>
-            Internal note
-          </div>
-          <textarea
-            className="input"
-            rows={5}
-            placeholder="Write the internal comment that should be added to the CRM card."
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
+          <PhoneLookupRow
+            countryCode={noteCountryCode}
+            setCountryCode={(v) => {
+              setNoteCountryCode(v);
+              resetNoteResolvedState();
+            }}
+            phone={notePhone}
+            setPhone={(v) => {
+              setNotePhone(v);
+              resetNoteResolvedState();
+            }}
+            onFind={resolveNoteLead}
+            busy={noteLoading}
           />
 
           {noteErr ? (
-            <div style={{ marginTop: 10, color: "rgba(255,120,120,0.95)" }}>{noteErr}</div>
-          ) : null}
-          {noteOk ? (
-            <div style={{ marginTop: 10, color: "rgba(120,255,170,0.95)" }}>{noteOk}</div>
+            <div style={{ marginTop: 10, color: "rgba(255,120,120,0.95)", wordBreak: "break-word" }}>
+              {noteErr}
+            </div>
           ) : null}
 
-          <div style={{ marginTop: 12 }}>
-            <button className="btn" onClick={submitNote} disabled={noteDisabled}>
-              Add comment
-            </button>
-          </div>
-        </div>
+          {noteOk ? (
+            <div style={{ marginTop: 10, color: "rgba(120,255,170,0.95)", wordBreak: "break-word" }}>
+              {noteOk}
+            </div>
+          ) : null}
+
+          {notePreview ? (
+            <div
+              style={{
+                marginTop: 14,
+                paddingTop: 14,
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                minWidth: 0,
+              }}
+            >
+              <SummaryBox lead={notePreview} />
+
+              <div style={{ marginTop: 12 }}>
+                <FieldLabel>Internal note</FieldLabel>
+                <textarea
+                  className="input"
+                  rows={5}
+                  style={{ minHeight: 120 }}
+                  placeholder="Write the internal comment that should be added to the CRM card."
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                />
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <button className="btn" onClick={submitNote} disabled={noteDisabled}>
+                  Add comment
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </CardShell>
       </div>
     </div>
   );
