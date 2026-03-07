@@ -1,4 +1,5 @@
 // src/pages/StatusPage.tsx
+// V17
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
@@ -223,6 +224,36 @@ export function StatusPage() {
   const updatedLabel = lastOkAtMs
     ? fmtCentralTime(lastOkAtMs, tzOffset)
     : fmtCentralTime(Date.parse(String(data?.ts || "")), tzOffset) || "—";
+
+  // OrthoCall UIX: Live listen visibility/capability
+  const canUseLiveListen = role === "clinic_admin" || role === "system_admin";
+  const liveListenEnabled = !!data?.live_listen_enabled;
+  const liveListenCapable = !!data?.listen_capable;
+  const activeCall = data?.active_call || null;
+
+  const activeLeadLabel = (() => {
+    const first = String(activeCall?.lead_hint?.first_name || "").trim();
+    const lastI = String(activeCall?.lead_hint?.last_initial || "").trim();
+    const last4 = String(activeCall?.lead_hint?.phone_last4 || "").trim();
+    if (!first) return "Live call";
+    return `${first}${lastI ? ` ${lastI}.` : ""}${last4 ? ` • …${last4}` : ""}`;
+  })();
+
+  const activeStarted = fmtCentralTime(activeCall?.started_at_ms, tzOffset) || "—";
+
+  async function openLiveListenSession() {
+    try {
+      const r = await opsFetch("/live-listen/session", { method: "POST", body: {} });
+      alert(String(r?.message || "Live listen session is not available yet."));
+    } catch (e: any) {
+      const msg =
+        e?.payload?.message ||
+        e?.payload?.error ||
+        e?.message ||
+        String(e);
+      alert(String(msg));
+    }
+  }
 
   // OrthoCall UIX: WHY NOT CALLING NOW? (tek bakışta sebep)
   const why = useMemo(() => {
@@ -514,6 +545,90 @@ export function StatusPage() {
           </div>
         );
       })()}
+
+      {canUseLiveListen && liveListenEnabled ? (
+        <div
+          style={{
+            marginTop: 16,
+            border: `1px solid ${activeCall ? "rgba(120,160,255,0.35)" : "rgba(255,255,255,0.10)"}`,
+            borderRadius: 12,
+            padding: 12,
+            background: activeCall ? "rgba(120,160,255,0.07)" : "rgba(0,0,0,0.18)",
+            opacity: activeCall ? 1 : 0.72,
+          }}
+        >
+          <div
+            className="hRow"
+            style={{ marginBottom: 8, alignItems: "flex-start" }}
+          >
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>
+                Listen Live Your AI Calling Front Desk
+              </div>
+              <div className="smallMuted" style={{ marginTop: 6 }}>
+                {activeCall
+                  ? "A live call is in progress. This session is listen-only."
+                  : "You can only listen while a live call is in progress."}
+              </div>
+            </div>
+
+            <button
+              className="btn"
+              onClick={openLiveListenSession}
+              disabled={!liveListenCapable}
+              title={!activeCall ? "You can only listen while a live call is in progress." : ""}
+            >
+              Listen Live
+            </button>
+          </div>
+
+          {activeCall ? (
+            <div className="grid2" style={{ marginTop: 10 }}>
+              <div
+                style={{
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "rgba(0,0,0,0.18)",
+                }}
+              >
+                <div className="kpiKey">Live Call</div>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {activeLeadLabel}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "rgba(0,0,0,0.18)",
+                }}
+              >
+                <div className="kpiKey">Call Type</div>
+                <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>
+                  {String(activeCall?.call_type || "—")}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "rgba(0,0,0,0.18)",
+                }}
+              >
+                <div className="kpiKey">Started</div>
+                <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>
+                  {activeStarted}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div style={{ marginTop: 16 }}>
         <div className="hRow" style={{ marginBottom: 8 }}>
