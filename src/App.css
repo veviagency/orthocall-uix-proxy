@@ -46,6 +46,7 @@
   display: flex;
   gap: 8px;
   margin: 12px 0 16px;
+  flex-wrap: wrap;
 }
 
 .tabBtn {
@@ -83,6 +84,12 @@
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.25);
   color: rgba(255,255,255,0.92);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+textarea.input {
+  resize: vertical;
 }
 
 .hRow {
@@ -91,6 +98,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .monoBox {
