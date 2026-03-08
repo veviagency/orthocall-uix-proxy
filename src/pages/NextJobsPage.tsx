@@ -1,15 +1,40 @@
 // src/pages/NextJobsPage.tsx
-// V17
+// V18
+
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
 import { useRole } from "../lib/useRole";
-import { startLiveListenSession, stopLiveListenSession } from "./lib/liveListenPlayer";
+import { startLiveListenSession, stopLiveListenSession } from "../lib/liveListenPlayer";
 
 function utcLabel(offsetHours: number) {
   const n = Number.isFinite(offsetHours) ? offsetHours : 0;
   const sign = n >= 0 ? "+" : "";
   return `Central Ops Time (UTC${sign}${n})`;
+}
+
+// OrthoCall UIX: Next Jobs ekranında merkezi saatle okunabilir timestamp
+function fmtCentralTime(ms: any, offsetHours: number) {
+  const n = Number(ms);
+  // Türkçe: 0 / boş / invalid timestamp => 1969 göstermeyelim.
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const off = Number.isFinite(offsetHours) ? offsetHours : 0;
+  const d = new Date(n + off * 3600000);
+
+  // Türkçe: Offset uygulanmış zamanı UTC üzerinden okunabilir formatta yaz.
+  const month = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
+  const day = d.toLocaleString("en-US", { day: "numeric", timeZone: "UTC" });
+  const year = d.toLocaleString("en-US", { year: "numeric", timeZone: "UTC" });
+
+  const HH = String(d.getUTCHours()).padStart(2, "0");
+  const MM = String(d.getUTCMinutes()).padStart(2, "0");
+  const SS = String(d.getUTCSeconds()).padStart(2, "0");
+
+  const sign = off >= 0 ? "+" : "-";
+  const abs = Math.abs(off);
+  const tzLabel = `UTC${sign}${abs}`;
+
+  return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
 }
 
 export function NextJobsPage() {
