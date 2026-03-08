@@ -1,10 +1,11 @@
 // src/pages/StatusPage.tsx
-// V17
+// V18
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
 import { useRole } from "../lib/useRole";
-import { startLiveListenSession, stopLiveListenSession } from "./lib/liveListenPlayer";
+import { startLiveListenSession, stopLiveListenSession } from "../lib/liveListenPlayer";
 
 function utcLabel(offsetHours: number) {
   const n = Number.isFinite(offsetHours) ? offsetHours : 0;
