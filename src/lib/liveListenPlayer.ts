@@ -1,9 +1,9 @@
-// src/lib/liveListenPlayer.ts
+// src/lib/liveListenPlayer.ts - V19
 // OrthoCall UIX: listen-only browser audio player
 // Türkçe:
 // - Server relay'den gelen base64 mu-law 8k audio chunk'larını çalar.
-// - Browser input göndermez; sadece speaker/output kullanır.
-// V18
+// - Inbound / outbound için AYRI queue tutar ve browser içinde mix eder.
+// - Böylece both_tracks modunda tek queue yüzünden oluşan yapay lag/choppy etki azalır.
 
 type LiveListenState =
   | { status: "idle"; note?: string }
@@ -14,11 +14,31 @@ type LiveListenState =
 
 let _ws: WebSocket | null = null;
 let _ctx: AudioContext | null = null;
-let _nextAt = 0;
 let _onState: ((s: LiveListenState) => void) | null = null;
 
+// Türkçe:
+// Tek _nextAt yerine track başına ayrı zaman çizgisi.
+// Böylece inbound chunk'lar outbound chunk'ları bekletmez.
+let _nextAtInbound = 0;
+let _nextAtOutbound = 0;
+
+// Türkçe: browser içinde basit mix için ayrı gain node'lar
+let _masterGain: GainNode | null = null;
+let _inboundGain: GainNode | null = null;
+let _outboundGain: GainNode | null = null;
+
+// Türkçe: küçük sabit jitter buffer
+const BASE_JITTER_SEC = 0.06;
+const MAX_TRACK_QUEUE_AHEAD_SEC = 1.0;
+
+// Türkçe: outbound'ı hafif kısalım ki karşı tarafı bastırmasın
+const INBOUND_GAIN = 1.0;
+const OUTBOUND_GAIN = 0.82;
+
 function _emit(s: LiveListenState) {
-  try { if (_onState) _onState(s); } catch {}
+  try {
+    if (_onState) _onState(s);
+  } catch {}
 }
 
 function _b64ToBytes(b64: string) {
@@ -63,29 +83,85 @@ async function _ensureAudioCtx() {
     await _ctx.resume();
   }
 
+  if (!_masterGain) {
+    _masterGain = _ctx.createGain();
+    _masterGain.gain.value = 1.0;
+    _masterGain.connect(_ctx.destination);
+  }
+
+  if (!_inboundGain) {
+    _inboundGain = _ctx.createGain();
+    _inboundGain.gain.value = INBOUND_GAIN;
+    _inboundGain.connect(_masterGain);
+  }
+
+  if (!_outboundGain) {
+    _outboundGain = _ctx.createGain();
+    _outboundGain.gain.value = OUTBOUND_GAIN;
+    _outboundGain.connect(_masterGain);
+  }
+
   return _ctx;
 }
 
-async function _playMulawChunk(payload: string) {
-  if (!_ctx) return;
+function _pickTrack(trackRaw: string) {
+  const t = String(trackRaw || "").trim().toLowerCase();
+
+  // Twilio track isimleri farklı varyasyonlarda gelebilir.
+  if (t.includes("outbound")) return "outbound";
+  if (t.includes("inbound")) return "inbound";
+
+  // Türkçe: bilinmeyen track gelirse inbound gibi davranalım.
+  return "inbound";
+}
+
+function _normalizeTrackClock(ctx: AudioContext, track: "inbound" | "outbound") {
+  let nextAt = track === "outbound" ? _nextAtOutbound : _nextAtInbound;
+
+  if (nextAt < ctx.currentTime + 0.04) {
+    nextAt = ctx.currentTime + BASE_JITTER_SEC;
+  }
+
+  // Türkçe: track queue çok öne gittiyse tekrar yakına çek.
+  if ((nextAt - ctx.currentTime) > MAX_TRACK_QUEUE_AHEAD_SEC) {
+    nextAt = ctx.currentTime + 0.08;
+  }
+
+  if (track === "outbound") _nextAtOutbound = nextAt;
+  else _nextAtInbound = nextAt;
+
+  return nextAt;
+}
+
+async function _playMulawChunk(payload: string, trackRaw: string) {
+  if (!_ctx || !_masterGain || !_inboundGain || !_outboundGain) return;
 
   const pcm = _decodeMulawToFloat32(payload);
   if (!pcm.length) return;
 
   const ctx = _ctx;
+  const track = _pickTrack(trackRaw);
+
   const buffer = ctx.createBuffer(1, pcm.length, 8000);
   buffer.copyToChannel(pcm, 0);
 
   const src = ctx.createBufferSource();
   src.buffer = buffer;
-  src.connect(ctx.destination);
 
-  // Türkçe: küçük jitter buffer; fazla birikirse kuyruğu kısalt.
-  if (_nextAt < ctx.currentTime + 0.04) _nextAt = ctx.currentTime + 0.04;
-  if ((_nextAt - ctx.currentTime) > 1.0) _nextAt = ctx.currentTime + 0.08;
+  if (track === "outbound") {
+    src.connect(_outboundGain);
+  } else {
+    src.connect(_inboundGain);
+  }
 
-  src.start(_nextAt);
-  _nextAt += buffer.duration;
+  const at = _normalizeTrackClock(ctx, track);
+  src.start(at);
+
+  if (track === "outbound") {
+    _nextAtOutbound = at + buffer.duration;
+  } else {
+    _nextAtInbound = at + buffer.duration;
+  }
 }
 
 export async function stopLiveListenSession() {
@@ -95,12 +171,29 @@ export async function stopLiveListenSession() {
       _ws = null;
     }
 
+    if (_masterGain) {
+      try { _masterGain.disconnect(); } catch {}
+      _masterGain = null;
+    }
+
+    if (_inboundGain) {
+      try { _inboundGain.disconnect(); } catch {}
+      _inboundGain = null;
+    }
+
+    if (_outboundGain) {
+      try { _outboundGain.disconnect(); } catch {}
+      _outboundGain = null;
+    }
+
     if (_ctx) {
       try { await _ctx.close(); } catch {}
       _ctx = null;
     }
 
-    _nextAt = 0;
+    _nextAtInbound = 0;
+    _nextAtOutbound = 0;
+
     _emit({ status: "idle", note: "" });
   } catch {}
 }
@@ -115,7 +208,11 @@ export async function startLiveListenSession(
   _emit({ status: "connecting", note: "Connecting live audio..." });
 
   await _ensureAudioCtx();
-  if (_ctx) _nextAt = _ctx.currentTime + 0.06;
+
+  if (_ctx) {
+    _nextAtInbound = _ctx.currentTime + BASE_JITTER_SEC;
+    _nextAtOutbound = _ctx.currentTime + BASE_JITTER_SEC;
+  }
 
   await new Promise<void>((resolve, reject) => {
     const ws = new WebSocket(String(wsUrl || ""));
@@ -140,7 +237,10 @@ export async function startLiveListenSession(
         }
 
         if (msg.type === "media") {
-          await _playMulawChunk(String(msg.payload || ""));
+          await _playMulawChunk(
+            String(msg.payload || ""),
+            String(msg.track || "")
+          );
           return;
         }
 
