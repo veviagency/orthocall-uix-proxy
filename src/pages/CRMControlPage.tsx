@@ -1,6 +1,6 @@
-// V120
+// V20
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { opsFetch, classifyOpsError } from "../lib/opsClient";
 import { useRole } from "../lib/useRole";
 
@@ -183,7 +183,7 @@ export function CRMControlPage() {
   const canUse =
     role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
 
-  const [noteCountryCode, setNoteCountryCode] = useState("");
+  const [moveCountryCode, setMoveCountryCode] = useState("");
   const [movePhone, setMovePhone] = useState("");
   const [moveReason, setMoveReason] = useState("");
   const [moveConfirm, setMoveConfirm] = useState(false);
@@ -192,7 +192,7 @@ export function CRMControlPage() {
   const [moveErr, setMoveErr] = useState("");
   const [moveOk, setMoveOk] = useState("");
 
-  const [noteCountryCode, setNoteCountryCode] = useState("+1");
+  const [noteCountryCode, setNoteCountryCode] = useState("");
   const [notePhone, setNotePhone] = useState("");
   const [noteText, setNoteText] = useState("");
   const [notePreview, setNotePreview] = useState<LeadPreview | null>(null);
