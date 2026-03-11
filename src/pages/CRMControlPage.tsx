@@ -1,4 +1,4 @@
-// V16.2
+// V120
 
 import { useMemo, useState } from "react";
 import { opsFetch, classifyOpsError } from "../lib/opsClient";
@@ -28,7 +28,7 @@ type LeadPreview = {
 
 function sanitizeCountryCode(raw: string) {
   const digits = String(raw || "").replace(/\D/g, "").slice(0, 4);
-  return `+${digits || "1"}`;
+  return digits ? `+${digits}` : "";
 }
 
 function onlyPhoneDigits(raw: string) {
@@ -38,7 +38,7 @@ function onlyPhoneDigits(raw: string) {
 function buildE164(countryCode: string, localNumber: string) {
   const cc = sanitizeCountryCode(countryCode);
   const local = onlyPhoneDigits(localNumber);
-  if (!local) return "";
+  if (!cc || !local) return "";
   return `${cc}${local}`;
 }
 
@@ -125,6 +125,7 @@ function PhoneLookupRow({
   setPhone,
   onFind,
   busy,
+  countryCodeLocked = false,
 }: {
   countryCode: string;
   setCountryCode: (v: string) => void;
@@ -132,6 +133,7 @@ function PhoneLookupRow({
   setPhone: (v: string) => void;
   onFind: () => Promise<void>;
   busy: boolean;
+  countryCodeLocked?: boolean;
 }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexWrap: "wrap" }}>
@@ -141,10 +143,16 @@ function PhoneLookupRow({
           width: 88,
           flex: "0 0 88px",
           textAlign: "center",
+          opacity: countryCodeLocked ? 0.68 : 1,
+          cursor: countryCodeLocked ? "not-allowed" : "text",
         }}
         value={countryCode}
-        onChange={(e) => setCountryCode(sanitizeCountryCode(e.target.value))}
-        placeholder="+1"
+        onChange={(e) => {
+          if (!countryCodeLocked) setCountryCode(sanitizeCountryCode(e.target.value));
+        }}
+        placeholder="+CC"
+        readOnly={countryCodeLocked}
+        disabled={countryCodeLocked}
       />
 
       <input
@@ -158,7 +166,11 @@ function PhoneLookupRow({
         onChange={(e) => setPhone(onlyPhoneDigits(e.target.value))}
       />
 
-      <button className="btn" onClick={onFind} disabled={busy || !onlyPhoneDigits(phone)}>
+      <button
+        className="btn"
+        onClick={onFind}
+        disabled={busy || !sanitizeCountryCode(countryCode) || !onlyPhoneDigits(phone)}
+      >
         Find lead
       </button>
     </div>
@@ -171,7 +183,7 @@ export function CRMControlPage() {
   const canUse =
     role === "clinic_operator" || role === "clinic_admin" || role === "system_admin";
 
-  const [moveCountryCode, setMoveCountryCode] = useState("+1");
+  const [noteCountryCode, setNoteCountryCode] = useState("");
   const [movePhone, setMovePhone] = useState("");
   const [moveReason, setMoveReason] = useState("");
   const [moveConfirm, setMoveConfirm] = useState(false);
@@ -202,6 +214,26 @@ export function CRMControlPage() {
   const noteDisabled = useMemo(() => {
     return !notePreview || !noteText.trim() || noteLoading;
   }, [notePreview, noteText, noteLoading]);
+
+  async function loadPhoneCountryCodeFromServer() {
+    try {
+      const r: any = await opsFetch("/status", { method: "GET" });
+      const cc = sanitizeCountryCode(
+        r && typeof r === "object" ? String(r.phone_country_code || "") : ""
+      );
+
+      if (cc) {
+        setMoveCountryCode(cc);
+        setNoteCountryCode(cc);
+      }
+    } catch (_) {}
+  }
+
+  useEffect(() => {
+    if (roleLoading) return;
+    if (!canUse) return;
+    loadPhoneCountryCodeFromServer().catch(() => {});
+  }, [roleLoading, canUse]);
 
   function resetMoveResolvedState() {
     setMovePreview(null);
@@ -358,6 +390,7 @@ export function CRMControlPage() {
 
           <PhoneLookupRow
             countryCode={moveCountryCode}
+            countryCodeLocked={true}
             setCountryCode={(v) => {
               setMoveCountryCode(v);
               resetMoveResolvedState();
@@ -457,6 +490,7 @@ export function CRMControlPage() {
 
           <PhoneLookupRow
             countryCode={noteCountryCode}
+            countryCodeLocked={true}
             setCountryCode={(v) => {
               setNoteCountryCode(v);
               resetNoteResolvedState();
