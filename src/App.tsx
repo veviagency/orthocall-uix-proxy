@@ -23,12 +23,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function sendLink() {
     if (!email.trim()) return alert("Email required");
+
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        // OrthoCall UIX: Bilinmeyen email auth tarafında otomatik user oluşturmasın.
+        shouldCreateUser: false,
+      },
     });
-    if (error) return alert(error.message);
-    alert("Magic link sent. Open your email and click the link.");
+
+  if (error) return alert(error.message);
+  alert("Magic link sent. Open your email and click the link.");
   }
 
   async function signOut() {
