@@ -731,8 +731,12 @@ export function StatusPage() {
       <div style={{ marginTop: 16 }}>
         <div className="hRow" style={{ marginBottom: 8 }}>
           <h3 style={{ margin: 0 }}>Recent Activity (last 100)</h3>
+
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <label className="smallMuted" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <label
+              className="smallMuted"
+              style={{ display: "flex", gap: 6, alignItems: "center" }}
+            >
               <input
                 type="checkbox"
                 checked={activityPaused}
@@ -740,10 +744,13 @@ export function StatusPage() {
               />
               Pause updates
             </label>
+
             <button
               className="btn"
               onClick={() => {
-                try { localStorage.removeItem(ACT_CACHE_KEY); } catch (_) {}
+                try {
+                  localStorage.removeItem(ACT_CACHE_KEY);
+                } catch (_) {}
                 setActivity([]);
                 setActivityMeta(null);
               }}
@@ -756,7 +763,7 @@ export function StatusPage() {
         {activityErr ? <div style={{ color: "crimson" }}>{activityErr}</div> : null}
 
         <div style={{ marginTop: 8 }}>
-          {(activity && activity.length) ? (
+          {activity && activity.length ? (
             <div className="activityTimeline">
               {activity.map((it: any, i: number) => {
                 const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "—";
@@ -795,7 +802,7 @@ export function StatusPage() {
               className="monoBox activityBox"
               style={{ marginTop: 8, maxHeight: 260, overflow: "auto" }}
             >
-              {(activity && activity.length)
+              {activity && activity.length
                 ? activity
                     .map((it: any) => {
                       const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "";
