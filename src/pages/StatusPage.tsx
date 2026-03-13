@@ -1,5 +1,5 @@
 // src/pages/StatusPage.tsx
-// V25.2
+// V25.3
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
