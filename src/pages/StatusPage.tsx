@@ -1,5 +1,5 @@
 // src/pages/StatusPage.tsx
-// V18
+// V25
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
@@ -227,6 +227,15 @@ export function StatusPage() {
   const overallActive =
     overall === "PAUSED" || overall === "LIVE" || overall === "READY" ? overall : "";
 
+  const overallToneClass =
+    overallActive === "LIVE"
+      ? "statusBeacon statusBeaconLive"
+      : overallActive === "READY"
+      ? "statusBeacon statusBeaconReady"
+      : overallActive === "PAUSED"
+      ? "statusBeacon statusBeaconPaused"
+      : "statusBeacon";
+
   const updatedLabel = lastOkAtMs
     ? fmtCentralTime(lastOkAtMs, tzOffset)
     : fmtCentralTime(Date.parse(String(data?.ts || "")), tzOffset) || "—";
@@ -385,11 +394,42 @@ export function StatusPage() {
   }, [data, conn, connDetail, isStale, staleAgeMs, tzOffset, nowMs]);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div className="hRow" style={{ marginBottom: 12, alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ fontWeight: 800 }}>Connectivity:</div>
+    <div className="pageStage pagePad">
+      <div className="statusHero">
+        <div className="pageHeader pageHeaderTight">
+          <div>
+            <div className="pageEyebrow">Live operations view</div>
+
+            <div className="pageTitleRow">
+              <h2 className="pageTitle">Status</h2>
+              <span className={overallToneClass} aria-hidden="true" />
+              {overallActive ? <span className="badge">{overallActive}</span> : null}
+            </div>
+
+            <div className="smallMuted pageSubtle">{utcLabel(tzOffset)}</div>
+          </div>
+
+          <div className="pageHeaderMeta">
+            <div>
+              Updated: {updatedLabel || "—"}
+              {lastOkAtMs ? (
+                <span style={{ marginLeft: 8, opacity: 0.85 }}>
+                  ({isStale ? "STALE" : "fresh"} • age {fmtAge(staleAgeMs)})
+                </span>
+              ) : null}
+            </div>
+
+            {lastErrAtMs ? (
+              <div style={{ marginTop: 4, opacity: 0.8 }}>
+                last_error: {fmtCentralTime(lastErrAtMs, tzOffset) || "—"}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="statusPillRows">
+          <div className="statusPillRow">
+            <div className="statusPillLabel">Connectivity</div>
             {(["OK", "SERVER_DOWN", "AUTH", "PROXY_ERROR"] as ConnectivityState[]).map((s) => (
               <span key={s} style={pillStyle(conn === s, connBg(s))}>
                 {s}
@@ -397,8 +437,8 @@ export function StatusPage() {
             ))}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ fontWeight: 800 }}>Overall Status:</div>
+          <div className="statusPillRow">
+            <div className="statusPillLabel">Overall Status</div>
             {(["PAUSED", "LIVE", "READY"] as const).map((s) => (
               <span key={s} style={pillStyle(overallActive === s, overallBg(s))}>
                 {s}
@@ -406,26 +446,6 @@ export function StatusPage() {
             ))}
             {!overallActive ? <span className="smallMuted">—</span> : null}
           </div>
-
-          <div className="smallMuted" style={{ fontWeight: 600 }}>
-            {utcLabel(tzOffset)}
-          </div>
-        </div>
-
-        <div className="smallMuted" style={{ textAlign: "right" }}>
-          <div>
-            Updated: {updatedLabel || "—"}
-            {lastOkAtMs ? (
-              <span style={{ marginLeft: 8, opacity: 0.85 }}>
-                ({isStale ? "STALE" : "fresh"} • age {fmtAge(staleAgeMs)})
-              </span>
-            ) : null}
-          </div>
-          {lastErrAtMs ? (
-            <div style={{ marginTop: 4, opacity: 0.8 }}>
-              last_error: {fmtCentralTime(lastErrAtMs, tzOffset) || "—"}
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -447,10 +467,26 @@ export function StatusPage() {
           background: "rgba(0,0,0,0.18)",
         }}
       >
-        <div className="kpiKey">WHY NOT CALLING NOW?</div>
-        <div style={{ fontSize: 16, fontWeight: 900, marginTop: 6 }}>{why.primary}</div>
+        <div
+        className="surfaceCard"
+        style={{
+          marginTop: 12,
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 16,
+          padding: 14,
+          background: "rgba(0,0,0,0.18)",
+        }}
+      >
+        <div className="pageEyebrow" style={{ marginBottom: 4 }}>
+          Why not calling now?
+        </div>
+
+        <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>
+          {why.primary}
+        </div>
+
         {why.details && why.details.length ? (
-          <div className="smallMuted" style={{ marginTop: 8 }}>
+          <div className="smallMuted" style={{ marginTop: 10 }}>
             {why.details.map((x: string, i: number) => (
               <div key={`${x}_${i}`}>{x}</div>
             ))}
@@ -458,7 +494,7 @@ export function StatusPage() {
         ) : null}
       </div>
 
-      <h2>Status</h2>
+      <div className="sectionTitle">Control & Diagnostics</div>
 
       {(() => {
         const pause = data?.pause || {};
@@ -577,6 +613,7 @@ export function StatusPage() {
 
       {canUseLiveListen && liveListenEnabled ? (
         <div
+          className={`livePanel ${activeCall ? "livePanelActive" : ""}`}
           style={{
             marginTop: 16,
             border: `1px solid ${activeCall ? "rgba(120,160,255,0.35)" : "rgba(255,255,255,0.10)"}`,
@@ -591,9 +628,16 @@ export function StatusPage() {
             style={{ marginBottom: 8, alignItems: "flex-start" }}
           >
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>
-                Listen Live Your AI Calling Front Desk
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span
+                  className={activeCall ? "statusBeacon statusBeaconLive" : "statusBeacon statusBeaconReady"}
+                  aria-hidden="true"
+                />
+                <div style={{ fontSize: 18, fontWeight: 800 }}>
+                  Listen Live Your AI Calling Front Desk
+                </div>
               </div>
+
               <div className="smallMuted" style={{ marginTop: 6 }}>
                 {activeCall
                   ? "A live call is in progress. This session is listen-only."
@@ -692,7 +736,7 @@ export function StatusPage() {
 
         {activityErr ? <div style={{ color: "crimson" }}>{activityErr}</div> : null}
 
-        <pre className="monoBox" style={{ marginTop: 8, maxHeight: 320, overflow: "auto" }}>
+        <pre className="monoBox activityBox" style={{ marginTop: 8, maxHeight: 320, overflow: "auto" }}>
           {(activity && activity.length)
             ? activity
                 .map((it: any) => {
@@ -775,6 +819,7 @@ function PauseResumePanel({ onDone }: { onDone: () => Promise<void> }) {
 
   return (
     <div
+      className="surfaceCard"
       style={{
         marginTop: 16,
         padding: 12,
@@ -861,6 +906,7 @@ function EmergencyControls({
 
   return (
     <div
+      className="surfaceCard"
       style={{
         marginTop: 16,
         padding: 12,
