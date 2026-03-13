@@ -1,4 +1,4 @@
-// src/pages/RangePage.tsx - V14
+// src/pages/RangePage.tsx - V25
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { useRole } from "../lib/useRole";
@@ -96,7 +96,7 @@ export function RangePage() {
   const days = Array.isArray(data?.days) ? data.days : [];
 
   return (
-    <div style={{ padding: 16 }}>
+    <div className="pageStage pagePad">
       <div style={{ marginBottom: 12, fontWeight: 600 }}>{utcLabel(tzOffset)}</div>
 
       <h2>Range</h2>
@@ -122,6 +122,7 @@ export function RangePage() {
           return (
             <div
               key={m.key}
+              className="metricCard surfaceCard surfaceCardHover"
               style={{
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 12,
