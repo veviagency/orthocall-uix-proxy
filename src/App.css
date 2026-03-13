@@ -572,7 +572,7 @@ body::before {
   border-color: rgba(255,255,255,0.10);
 }
 
-.ctivityViewport {
+.activityViewport {
   margin-top: 8px;
   max-height: min(760px, 62vh);
   overflow-y: auto;
