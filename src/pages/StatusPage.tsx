@@ -1,5 +1,5 @@
 // src/pages/StatusPage.tsx
-// V25
+// V25.2
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
@@ -35,6 +35,25 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   const tzLabel = `UTC${sign}${abs}`;
 
   return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
+}
+
+function activityDotClass(it: any) {
+  const level = String(it?.level || "").toLowerCase();
+  const type = String(it?.type || "").toLowerCase();
+
+  if (level === "error") return "activityDot activityDotError";
+  if (level === "warn") return "activityDot activityDotWarn";
+
+  if (
+    type.includes("booking") ||
+    type.includes("booked") ||
+    type.includes("call_start") ||
+    type.includes("call_initiated")
+  ) {
+    return "activityDot activityDotSuccess";
+  }
+
+  return "activityDot activityDotInfo";
 }
 
 export function StatusPage() {
@@ -736,22 +755,58 @@ export function StatusPage() {
 
         {activityErr ? <div style={{ color: "crimson" }}>{activityErr}</div> : null}
 
-        <pre className="monoBox activityBox" style={{ marginTop: 8, maxHeight: 320, overflow: "auto" }}>
-          {(activity && activity.length)
-            ? activity
-                .map((it: any) => {
-                  const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "";
-                  const msg = String(it?.msg || "");
-                  return ts ? `${ts} • ${msg}` : msg;
-                })
-                .join("\n")
-            : "No activity yet."}
-        </pre>
+        <div style={{ marginTop: 8 }}>
+          {(activity && activity.length) ? (
+            <div className="activityTimeline">
+              {activity.map((it: any, i: number) => {
+                const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "—";
+                const msg = String(it?.msg || "—");
+                const type = String(it?.type || "event").replace(/_/g, " ");
+
+                return (
+                  <div key={`${it?.ts_ms || 0}_${i}`} className="activityItem">
+                    <div className={activityDotClass(it)} />
+                    <div>
+                      <div className="activityMeta">
+                        <span>{ts}</span>
+                        <span className="activityType">{type}</span>
+                      </div>
+
+                      <div className="activityMessage">{msg}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="activityEmpty">No activity yet.</div>
+          )}
+        </div>
 
         <div className="smallMuted" style={{ marginTop: 6 }}>
           Updated: {fmtCentralTime(activityMeta?.last_activity_ms, tzOffset) || "—"} • items:{" "}
           {String(activity?.length || 0)}
         </div>
+
+        {role === "system_admin" ? (
+          <details style={{ marginTop: 10 }}>
+            <summary style={{ cursor: "pointer", opacity: 0.8 }}>Raw activity</summary>
+            <pre
+              className="monoBox activityBox"
+              style={{ marginTop: 8, maxHeight: 260, overflow: "auto" }}
+            >
+              {(activity && activity.length)
+                ? activity
+                    .map((it: any) => {
+                      const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "";
+                      const msg = String(it?.msg || "");
+                      return ts ? `${ts} • ${msg}` : msg;
+                    })
+                    .join("\n")
+                : "No activity yet."}
+            </pre>
+          </details>
+        ) : null}
       </div>
 
       {role === "system_admin" && (
