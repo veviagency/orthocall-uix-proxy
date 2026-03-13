@@ -1,5 +1,5 @@
 
-/* V25.2 - UIX premium calm ops skin */
+/* V25.3 - UIX premium calm ops skin */
 /* Türkçe: Sadece görsel katman iyileştirildi; işlevsel akışa dokunmuyoruz. */
 
 :root {
@@ -462,11 +462,20 @@ body::before {
   border-color: rgba(255,255,255,0.10);
 }
 
+.ctivityViewport {
+  margin-top: 8px;
+  max-height: min(760px, 62vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
 .activityTimeline {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 8px;
 }
 
 .activityItem {
