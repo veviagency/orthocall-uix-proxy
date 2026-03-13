@@ -753,10 +753,10 @@ export function StatusPage() {
 
         {activityErr ? <div style={{ color: "crimson" }}>{activityErr}</div> : null}
 
-        <div style={{ marginTop: 8 }}>
+        <div className="activityViewport">
           {activity && activity.length ? (
             <div className="activityTimeline">
-              {activity.map((it: any, i: number) => {
+              {activity.slice().reverse().map((it: any, i: number) => {
                 const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "—";
                 const msg = String(it?.msg || "—");
                 const type = String(it?.type || "event").replace(/_/g, " ");
@@ -795,6 +795,8 @@ export function StatusPage() {
             >
               {activity && activity.length
                 ? activity
+                    .slice()
+                    .reverse()
                     .map((it: any) => {
                       const ts = fmtCentralTime(it?.ts_ms, tzOffset) || "";
                       const msg = String(it?.msg || "");
