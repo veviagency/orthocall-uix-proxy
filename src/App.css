@@ -57,6 +57,9 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .card {
@@ -91,6 +94,13 @@ body::before {
   width: 100%;
   max-width: 540px;
   padding: 24px;
+  position: relative;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgba(8,16,30,0.94) 0%, rgba(9,18,34,0.92) 100%);
+  box-shadow:
+    0 24px 70px rgba(0,0,0,0.42),
+    0 0 0 1px rgba(255,255,255,0.05) inset;
 }
 
 .loginBadge {
@@ -113,6 +123,106 @@ body::before {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.loginNotice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(241,196,15,0.22);
+  background: rgba(241,196,15,0.08);
+  color: rgba(255,245,204,0.96);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.loginActivityBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding: 18px 8px;
+  opacity: 0.52;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0,0,0,1) 10%,
+    rgba(0,0,0,1) 90%,
+    transparent 100%
+  );
+}
+
+.loginActivityLane {
+  overflow: hidden;
+  min-height: 100%;
+}
+
+.loginActivityTrack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  will-change: transform;
+  animation: loginActivityScroll 36s linear infinite;
+}
+
+.loginActivityLane1 .loginActivityTrack {
+  animation-duration: 34s;
+}
+
+.loginActivityLane2 .loginActivityTrack {
+  animation-duration: 39s;
+  animation-delay: -9s;
+}
+
+.loginActivityLane3 .loginActivityTrack {
+  animation-duration: 36s;
+  animation-delay: -15s;
+}
+
+.loginGhostCard {
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+  box-shadow: var(--uix-shadow-soft);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.loginGhostMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--uix-muted);
+}
+
+.loginGhostMetaLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.loginGhostType {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.84);
+  white-space: nowrap;
+}
+
+.loginGhostMessage {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.88);
+  word-break: break-word;
 }
 
 .topbar {
@@ -642,6 +752,15 @@ body::before {
   100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
 }
 
+@keyframes loginActivityScroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
 @keyframes pageFadeIn {
   from {
     opacity: 0;
@@ -671,6 +790,14 @@ body::before {
 
   .pageHeaderMeta {
     text-align: left;
+  }
+
+  .loginActivityBackdrop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loginActivityLane3 {
+    display: none;
   }
 }
 
@@ -707,5 +834,28 @@ body::before {
   .rightMeta {
     width: 100%;
     justify-content: flex-start;
+  }
+  
+  .loginActivityBackdrop {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .loginActivityLane2,
+  .loginActivityLane3 {
+    display: none;
+  }
+
+  .loginGhostCard {
+    padding: 10px;
+  }
+
+  .loginGhostMessage {
+    font-size: 12px;
+  }
+
+  .loginNotice {
+    font-size: 11px;
   }
 }
