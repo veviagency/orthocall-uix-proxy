@@ -1,5 +1,5 @@
 // src/pages/NextJobsPage.tsx
-// V18
+// V25
 
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
@@ -60,6 +60,7 @@ export function NextJobsPage() {
   })();
 
   const activeStarted = fmtCentralTime(activeCall?.started_at_ms, tzOffset) || "—";
+  const liveToneClass = activeCall ? "statusBeacon statusBeaconLive" : "statusBeacon statusBeaconReady";
 
   async function openLiveListenSession() {
     try {
@@ -111,16 +112,15 @@ export function NextJobsPage() {
   }, []);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div className="hRow" style={{ marginBottom: 12 }}>
+    <div className="pageStage pagePad">
+      <div className="pageHeader">
         <div>
-          <h2 style={{ margin: 0 }}>Next Jobs</h2>
-          <div className="smallMuted" style={{ marginTop: 4 }}>
-            {utcLabel(tzOffset)}
-          </div>
+          <div className="pageEyebrow">Priority queue preview</div>
+          <h2 className="pageTitle">Next Jobs</h2>
+          <div className="smallMuted pageSubtle">{utcLabel(tzOffset)}</div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div className="badge">limit: 3</div>
           <button className="btn" onClick={load}>
             Refresh
@@ -130,6 +130,7 @@ export function NextJobsPage() {
 
       {canUseLiveListen && liveListenEnabled ? (
         <div
+          className={`livePanel ${activeCall ? "livePanelActive" : ""}`}
           style={{
             marginBottom: 16,
             border: `1px solid ${activeCall ? "rgba(120,160,255,0.35)" : "rgba(255,255,255,0.10)"}`,
@@ -141,9 +142,13 @@ export function NextJobsPage() {
         >
           <div className="hRow" style={{ marginBottom: 8, alignItems: "flex-start" }}>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>
-                Listen Live Your AI Calling Front Desk
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span className={liveToneClass} aria-hidden="true" />
+                <div style={{ fontSize: 18, fontWeight: 800 }}>
+                  Listen Live Your AI Calling Front Desk
+                </div>
               </div>
+
               <div className="smallMuted" style={{ marginTop: 6 }}>
                 {activeCall
                   ? "A live call is in progress. This session is listen-only."
@@ -216,7 +221,7 @@ export function NextJobsPage() {
       ) : null}
 
       {jobs.length === 0 ? (
-        <div>
+        <div className="emptyState">
           <div className="smallMuted">No jobs right now.</div>
           <div className="smallMuted" style={{ marginTop: 8 }}>
             Possible reasons: paused • kill-switch ON • no due jobs • queue empty.
