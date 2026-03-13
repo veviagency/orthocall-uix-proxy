@@ -1,4 +1,5 @@
-// src/App.tsx - V21
+
+// src/App.tsx - V25
 import { useEffect, useState } from "react";
 import "./App.css";
 import { supabase } from "./lib/supabaseClient";
@@ -13,7 +14,7 @@ import { CRMControlPage } from "./pages/CRMControlPage";
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState("");
   const [session, setSession] = useState<any>(null);
-  const { clinicName } = useRole();
+  const { clinicName, role, loading } = useRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
@@ -23,18 +24,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function sendLink() {
     if (!email.trim()) return alert("Email required");
-
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin,
-        // OrthoCall UIX: Bilinmeyen email auth tarafında otomatik user oluşturmasın.
-        shouldCreateUser: false,
-      },
+      options: { emailRedirectTo: window.location.origin },
     });
-
-  if (error) return alert(error.message);
-  alert("Magic link sent. Open your email and click the link.");
+    if (error) return alert(error.message);
+    alert("Magic link sent. Open your email and click the link.");
   }
 
   async function signOut() {
@@ -43,10 +38,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!session) {
     return (
-      <div className="appShell">
-        <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
-          <h2>Login</h2>
-          <p>Enter your email to receive a magic link.</p>
+      <div className="appShell loginShell">
+        <div className="card loginCard">
+          <div className="loginBadge">Secure clinic access</div>
+
+          <div className="brandCluster" style={{ marginBottom: 14 }}>
+            <div className="brand brandLg">OrthoCall UIX</div>
+            <div className="smallMuted">
+              Enter your email to receive a secure magic link.
+            </div>
+          </div>
 
           <input
             className="input"
@@ -55,9 +56,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <button className="btn" style={{ marginTop: 10 }} onClick={sendLink}>
-            Send magic link
-          </button>
+          <div className="loginActions">
+            <button className="btn" onClick={sendLink}>
+              Send magic link
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -66,16 +69,22 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="appShell">
       <div className="topbar">
-        <div>
-          <div className="brand">OrthoCall UIX</div>
+        <div className="brandCluster">
+          <div className="brand brandLg">OrthoCall UIX</div>
           {clinicName ? <div className="smallMuted">Clinic: {clinicName}</div> : null}
         </div>
+
         <div className="rightMeta">
+          <div className="badge">
+            Role: {loading ? "Loading..." : humanRoleLabel(role)}
+          </div>
+
           <button className="btn" onClick={signOut}>
             Sign out
           </button>
         </div>
       </div>
+
       {children}
     </div>
   );
@@ -92,7 +101,7 @@ function humanRoleLabel(role?: string) {
 
 export default function App() {
   const [tab, setTab] = useState<"status" | "today" | "range" | "jobs" | "crm" | "settings">("status");
-  const { role, loading } = useRole();
+  const { role } = useRole();
 
   // OrthoCall UIX: CRM Control sadece operator/admin/system_admin
   const canSeeCrmControl =
@@ -110,7 +119,7 @@ export default function App() {
   return (
     <AuthGate>
       <div className="card mainCard">
-        <div className="hRow">
+        <div className="panelNav">
           <div className="tabs">
             <button
               className={`tabBtn ${tab === "status" ? "tabBtnActive" : ""}`}
@@ -118,18 +127,21 @@ export default function App() {
             >
               Status
             </button>
+
             <button
               className={`tabBtn ${tab === "today" ? "tabBtnActive" : ""}`}
               onClick={() => setTab("today")}
             >
               Today
             </button>
+
             <button
               className={`tabBtn ${tab === "range" ? "tabBtnActive" : ""}`}
               onClick={() => setTab("range")}
             >
               Range
             </button>
+
             <button
               className={`tabBtn ${tab === "jobs" ? "tabBtnActive" : ""}`}
               onClick={() => setTab("jobs")}
@@ -154,10 +166,6 @@ export default function App() {
                 Settings
               </button>
             ) : null}
-          </div>
-
-          <div className="badge">
-            Role: {loading ? "Loading..." : humanRoleLabel(role)}
           </div>
         </div>
 
