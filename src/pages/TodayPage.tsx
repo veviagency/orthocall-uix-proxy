@@ -1,4 +1,5 @@
-// src/pages/TodayPage.tsx - V14
+
+// src/pages/TodayPage.tsx - V25
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
 import { startPoll } from "../lib/polling";
@@ -97,16 +98,15 @@ export function TodayPage() {
   }, []);
 
   return (
-    <div style={{ padding: 16 }}>
-      <div className="hRow" style={{ marginBottom: 12 }}>
+    <div className="pageStage pagePad">
+      <div className="pageHeader">
         <div>
-          <h2 style={{ margin: 0 }}>Today</h2>
-          <div className="smallMuted" style={{ marginTop: 4 }}>
-            {utcLabel(tzOffset)}
-          </div>
+          <div className="pageEyebrow">Daily performance</div>
+          <h2 className="pageTitle">Today</h2>
+          <div className="smallMuted pageSubtle">{utcLabel(tzOffset)}</div>
         </div>
 
-        <div className="smallMuted">
+        <div className="pageHeaderMeta">
           Updated: {fmtCentralTime(data?.updated_at_ms, tzOffset) || "—"}
         </div>
       </div>
@@ -117,6 +117,7 @@ export function TodayPage() {
           return (
             <div
               key={m.key}
+              className="metricCard surfaceCard surfaceCardHover"
               style={{
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 12,
@@ -137,7 +138,7 @@ export function TodayPage() {
       {role === "system_admin" && (
         <details style={{ marginTop: 12 }}>
           <summary>Raw JSON</summary>
-          <pre style={{ whiteSpace: "pre-wrap" }}>
+          <pre className="monoBox" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
             {JSON.stringify(data, null, 2)}
           </pre>
         </details>
