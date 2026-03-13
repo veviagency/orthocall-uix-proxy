@@ -1,5 +1,5 @@
 
-/* V25 - UIX premium calm ops skin */
+/* V25.2 - UIX premium calm ops skin */
 /* Türkçe: Sadece görsel katman iyileştirildi; işlevsel akışa dokunmuyoruz. */
 
 :root {
@@ -460,6 +460,79 @@ body::before {
   background:
     linear-gradient(180deg, rgba(0,0,0,0.36), rgba(0,0,0,0.30));
   border-color: rgba(255,255,255,0.10);
+}
+
+.activityTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.activityItem {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  box-shadow: var(--uix-shadow-soft);
+}
+
+.activityDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 4px;
+  background: rgba(255,255,255,0.28);
+  flex: 0 0 auto;
+}
+
+.activityDotInfo {
+  background: rgba(120,160,255,0.78);
+}
+
+.activityDotWarn {
+  background: rgba(241,196,15,0.88);
+}
+
+.activityDotError {
+  background: rgba(255,92,92,0.92);
+}
+
+.activityDotSuccess {
+  background: rgba(62,214,120,0.88);
+}
+
+.activityMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--uix-muted);
+}
+
+.activityType {
+  text-transform: capitalize;
+  opacity: 0.9;
+}
+
+.activityMessage {
+  font-size: 14px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.92);
+  word-break: break-word;
+}
+
+.activityEmpty {
+  padding: 16px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.02);
+  color: var(--uix-muted);
 }
 
 .grid2 {
