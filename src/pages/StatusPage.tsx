@@ -505,32 +505,6 @@ export function StatusPage() {
       </div>
 
       <div className="sectionTitle">Control & Diagnostics</div>
-        style={{
-          marginTop: 12,
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: 16,
-          padding: 14,
-          background: "rgba(0,0,0,0.18)",
-        }}
-      >
-        <div className="pageEyebrow" style={{ marginBottom: 4 }}>
-          Why not calling now?
-        </div>
-
-        <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>
-          {why.primary}
-        </div>
-
-        {why.details && why.details.length ? (
-          <div className="smallMuted" style={{ marginTop: 10 }}>
-            {why.details.map((x: string, i: number) => (
-              <div key={`${x}_${i}`}>{x}</div>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="sectionTitle">Control & Diagnostics</div>
 
       {(() => {
         const pause = data?.pause || {};
