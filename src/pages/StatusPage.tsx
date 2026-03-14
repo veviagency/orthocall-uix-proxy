@@ -1,5 +1,5 @@
 // src/pages/StatusPage.tsx
-// V25.3
+// V25.4
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { opsFetch, classifyOpsError, type ConnectivityState } from "../lib/opsClient";
@@ -35,6 +35,27 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   const tzLabel = `UTC${sign}${abs}`;
 
   return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
+}
+
+// OrthoCall UIX: job/call type'ları kullanıcıya ham enum yerine insanca göster.
+function humanJobTypeLabel(callType: any) {
+  const ct = String(callType || "").trim().toUpperCase();
+
+  if (ct === "NEW_LEAD") return "New Call Lead";
+  if (ct.startsWith("FOLLOW_UP")) return "Follow-up Call";
+  if (ct === "REMINDER_24H") return "24h Reminder Call";
+  if (ct === "REMINDER_2H") return "2h Reminder Call";
+  if (ct === "BOOKING_REMINDER") return "Booking Reminder";
+  if (ct === "RECALL") return "Recall Call";
+
+  return ct
+    ? ct
+        .toLowerCase()
+        .split("_")
+        .filter(Boolean)
+        .map((x) => x.charAt(0).toUpperCase() + x.slice(1))
+        .join(" ")
+    : "Next Job";
 }
 
 function activityDotClass(it: any) {
@@ -520,8 +541,8 @@ export function StatusPage() {
         const ksState = ks?.enabled ? "ON" : "OFF";
         const ksReason = String(ks?.reason || "");
 
-        const nextJobId = String(next?.job_id || "");
         const nextCallType = String(next?.call_type || "");
+        const nextJobLabel = humanJobTypeLabel(nextCallType);
         const nextWhen = String(next?.next_action_at_label || next?.due_at_label || "");
 
         return (
@@ -605,10 +626,10 @@ export function StatusPage() {
               {next ? (
                 <>
                   <div style={{ fontSize: 16, fontWeight: 800, marginTop: 6 }}>
-                    {nextCallType || "job"} {nextWhen ? `• ${nextWhen}` : ""}
+                    {nextJobLabel}
                   </div>
                   <div className="smallMuted" style={{ marginTop: 6 }}>
-                    job_id: {nextJobId || "—"}
+                    scheduled: {nextWhen || "—"}
                   </div>
                 </>
               ) : (
