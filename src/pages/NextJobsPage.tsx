@@ -293,14 +293,6 @@ export function NextJobsPage() {
                     gap: 10,
                   }}
                 >
-                  <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                  }}
-                >
                   <div style={{ fontWeight: 700 }}>{cardTitle}</div>
                   {callType ? <div className="badge">{jobTypeLabel}</div> : null}
                 </div>
