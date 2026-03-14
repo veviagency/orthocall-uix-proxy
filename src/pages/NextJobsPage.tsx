@@ -1,5 +1,5 @@
 // src/pages/NextJobsPage.tsx
-// V25
+// V25.4
 
 import { useEffect, useMemo, useState } from "react";
 import { opsFetch } from "../lib/opsClient";
@@ -37,6 +37,27 @@ function fmtCentralTime(ms: any, offsetHours: number) {
   return `${month} ${day}, ${year} - ${HH}:${MM}:${SS} (${tzLabel})`;
 }
 
+// OrthoCall UIX: job/call type'ları kullanıcıya ham enum yerine insanca göster.
+function humanJobTypeLabel(callType: any) {
+  const ct = String(callType || "").trim().toUpperCase();
+
+  if (ct === "NEW_LEAD") return "New Call Lead";
+  if (ct.startsWith("FOLLOW_UP")) return "Follow-up Call";
+  if (ct === "REMINDER_24H") return "24h Reminder Call";
+  if (ct === "REMINDER_2H") return "2h Reminder Call";
+  if (ct === "BOOKING_REMINDER") return "Booking Reminder";
+  if (ct === "RECALL") return "Recall Call";
+
+  return ct
+    ? ct
+        .toLowerCase()
+        .split("_")
+        .filter(Boolean)
+        .map((x) => x.charAt(0).toUpperCase() + x.slice(1))
+        .join(" ")
+    : "Next Job";
+}
+
 export function NextJobsPage() {
   const { role } = useRole();
   const [data, setData] = useState<any>(null);
@@ -60,6 +81,7 @@ export function NextJobsPage() {
   })();
 
   const activeStarted = fmtCentralTime(activeCall?.started_at_ms, tzOffset) || "—";
+  const activeCallTypeLabel = humanJobTypeLabel(activeCall?.call_type);
   const liveToneClass = activeCall ? "statusBeacon statusBeaconLive" : "statusBeacon statusBeaconReady";
 
   async function openLiveListenSession() {
@@ -198,7 +220,7 @@ export function NextJobsPage() {
               >
                 <div className="kpiKey">Call Type</div>
                 <div style={{ fontSize: 18, fontWeight: 800, marginTop: 6 }}>
-                  {String(activeCall?.call_type || "—")}
+                  {activeCallTypeLabel || "—"}
                 </div>
               </div>
 
@@ -243,11 +265,15 @@ export function NextJobsPage() {
               : "";
 
             const callType = String(j?.call_type || "").trim();
+            const jobTypeLabel = humanJobTypeLabel(callType);
             const when = String(j?.next_action_at_label || "").trim();
             const jobId = String(j?.job_id || "").trim();
 
             // OrthoCall UIX: job_id yoksa stabil key üret (Math.random() kullanma)
             const itemKey = jobId || `${callType || "job"}-${String(j?.next_action_at_ms || "")}-${i}`;
+
+            // OrthoCall UIX: ham job_id yerine insanca okunur başlık göster.
+            const cardTitle = `${jobTypeLabel}${leadLabel ? ` - ${leadLabel}` : " - Lead Info"}`;
 
             return (
               <div
@@ -267,16 +293,20 @@ export function NextJobsPage() {
                     gap: 10,
                   }}
                 >
-                  <div style={{ fontWeight: 700 }}>{leadLabel || "Next job"}</div>
-                  {callType ? <div className="badge">{callType}</div> : null}
+                  <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>{cardTitle}</div>
+                  {callType ? <div className="badge">{jobTypeLabel}</div> : null}
                 </div>
 
                 <div className="smallMuted" style={{ marginTop: 8 }}>
-                  next_action_at: {when || "—"}
-                </div>
-
-                <div className="smallMuted" style={{ marginTop: 6 }}>
-                  job_id: {jobId || "—"}
+                  scheduled: {when || "—"}
                 </div>
               </div>
             );
